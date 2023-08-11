@@ -23,8 +23,9 @@ _background_delete (){
 }
 
 _background_add (){
-   cmd="papis add -b -P $@ 2>>$tmplog"
-   outfolder=$(eval "$cmd")
+   papis add --print-folder $tmpdir/add-papis-folder --only-data --batch "$@" 2>>$tmplog
+   [[ -f $tmpdir/add-papis-folder ]] && outfolder=$(< $tmpdir/add-papis-folder)
+   echo -n "" > $tmpdir/add-papis-folder
 
    if [[ -d $outfolder ]]; then
       papis update -b --auto --doc-folder "$outfolder" 2>>$tmplog

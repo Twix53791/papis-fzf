@@ -30,10 +30,10 @@ add (){
       echo -e "\033[91madd the reference to your papis library ?"
       if [[ -n $add_esc ]]; then
          echo -e "\033[32mcancel (\033[94m${add_esc_name}\033[32m) ; edit the yaml file before saving (\033[94m${add_edit}\033[32m) ; create a new entry manually (\033[94m${add_manually}\033[32m)"
-         echo -e "back to tags selection (\033[94m${add_back_name}\033[32m) ; any key to continue"
+         echo -e "run manually the adding process (\033[94m${add_nobackground}\033[32m) ; back to tags selection (\033[94m${add_back_name}\033[32m) ; any key to continue"
       else
          echo -e "\033[32maccept (\033[94m${add_accept_name}\033[32m) ; edit the yaml file before saving (\033[94m${add_edit}\033[32m) ; create a new entry manually (\033[94m${add_manually}\033[32m)"
-         echo -e "back to tags selection (\033[94m${add_back_name}\033[32m) ; any key to cancel and exit"
+         echo -e "run manually the adding process (\033[94m${add_nobackground}\033[32m) ; back to tags selection (\033[94m${add_back_name}\033[32m) ; any key to cancel and exit"
       fi
       echo -e "\033[33murl: $1"
       echo -e "\033[35mtags: $tags\033[0m"
@@ -68,8 +68,22 @@ add (){
    # Add the reference with papis
    if [[ $key == $add_edit ]]; then
       export EDITOR=$editor
-      outfolder=$(papis add -P "${settags[@]}" "$tags" --edit "${doi[@]}" "$1" 2>> $tmplog)
+      outfolder=$(papis add --print-folder "${settags[@]}" "$tags" --edit "${doi[@]}" "$1" 2>> $tmplog)
       build-indexes --quiet "$outfolder"
+   elif [[ $key == $add_nobackground ]]; then
+      _fzf_env add-nobackground
+      papis add --only-data --print-folder $tmpdir/add-papis-folder "${settags[@]}" "$tags" "${doi[@]}" "$1"
+      [[ -f $tmpdir/add-papis-folder ]] && outfolder=$(< $tmpdir/add-papis-folder)
+      echo -n "" > $tmpdir/add-papis-folder
+
+      if [[ -d $outfolder ]]; then
+         papis update -b --auto --doc-folder "$outfolder" 2>>$tmplog
+         build-indexes --quiet "$outfolder"
+         flabels="$(_set_flabels $outfolder)"
+         _background_notification "A new entry has been added to the papis library :"
+      else
+         _background_notification "No entry has been added to the library" "The entry already exist in your library."
+      fi
    else
       # Run in the background:
       pipeinput="_background_add\n"
