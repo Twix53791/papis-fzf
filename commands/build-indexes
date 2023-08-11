@@ -1,0 +1,38 @@
+#!/bin/bash
+
+build-indexes (){
+   [[ $1 == "--quiet" ]] && quiet=1 && shift
+   [[ $1 == "--background" ]] && background=1 && shift
+   # If a list of papis-folders is given, update database
+   # 1) delete the entries in all the indexes
+   # 2) the python script recreate the entries (updated) if needed
+
+   if [[ -n $@ ]]; then
+      todelete=""
+      for folder in "$@"; do
+         nth=$(grep -n "$folder" $index 2>/dev/null)
+         nth="${nth%%:*}"
+         [[ -n $nth ]] && todelete+="${nth}d;"
+      done
+
+      if [[ -n $todelete ]]; then
+         sed -i "$todelete" $index
+         sed -i "$todelete" $indexraw
+         sed -i "$todelete" $indexcolored
+      fi
+   fi
+
+   if [[ -n $background ]]; then
+      pipeinput="\n"
+      pipeinput+="Indexes rebuilt.\n"
+      echo "$pipeinput" > $pipe
+   else
+      python $papisfzfdir/python/build.py "$@"
+   fi
+
+   if [[ $? != 0 ]]; then
+      echo "papis-fzf ERROR :: fail to build the index. Exit" >> $tmplog && exit
+   elif [[ -z $@ && -z $quiet ]]; then
+      echo "papis-fzf :: indexing the whoosh papis database..."
+   fi
+}

@@ -1,0 +1,23 @@
+#!/bin/bash
+
+delete (){
+   [[ -z $@ ]] && return
+   # Display the entries before deleting them
+   $viewyamlscript "$@"
+
+   # Ask confirmation
+   echo -e "\033[31m" && printf %"$COLUMNS"s | tr " " "="
+   echo -e "Do you really want to delete the currently listed entries ?"
+   echo -e "yY/nN ?"
+   read -s -n1 key
+
+   case $key in
+     y|Y) tput reset;;
+       *) echo -e "\033[94mOperation cancelled. Exit."; sleep .3; tput reset; return;;
+   esac
+
+   # Send the delete command to the papis-fzf pipe
+   pipeinput="_background_delete\n"
+   pipeinput+="$(printf '%s\\n' $@)"
+   echo "$pipeinput" > $pipe
+}

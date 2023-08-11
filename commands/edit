@@ -1,0 +1,22 @@
+#!/bin/bash
+
+edit (){
+   [[ -z $@ ]] && return
+
+   [[ -z $editor ]] &&
+      echo "papis-fzf ERROR :: No editor found. Exit." >> $tmplog &&
+      return
+
+   toedit=()
+   for yml in "$@"; do
+      yml="${yml}/info.yaml"
+      toedit+=("$yml")
+   done
+
+   $editor "${toedit[@]}"
+
+   # Update the database in the background
+   pipeinput="_background_edit\n"
+   pipeinput+="$(printf '%s\\n' $@)"
+   echo "$pipeinput" > $pipe
+}

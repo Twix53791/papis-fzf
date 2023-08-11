@@ -1,0 +1,40 @@
+#!/bin/bash
+# The keybindings are set in the config file
+
+show (){
+   [[ -z $@ ]] && return
+   $viewyamlscript "$@"
+
+   echo
+   echo -e "\033[34m actions: cite ($key_cite_name) ; edit ($key_edit) ; tag ($key_tag) ; browse ($key_browse) ; citations ($key_citations) ; export ($key_export) ; delete ($key_delete)"
+   echo -e " menu back ($key_back_name) ; exit ($key_exit_name)"
+   read -s -n 1 k
+
+   # Set the action
+   case $k in
+      $key_cite) cmd=cite;;
+      $key_edit) cmd=edit;;
+      $key_delete) cmd=delete;;
+      $key_browse) cmd=browse;;
+      $key_tag) cmd=tag;;
+      $key_export) cmd=xport;;
+      $key_citations) cmd=citations;;
+      $key_exit) tput reset; exit;;
+      $key_back) return;;
+      *) return;;
+   esac
+
+   # Run the action
+   if [[ ${#@} == 1 ]]; then
+      $cmd "$@"
+   else
+      # Multiple entries : fzf menu to pick up on which
+      # to execute the action
+      _fzf_env subselection
+      selection=$(_core_get_fzfentries "$@" | sort | fzf)
+      [[ -z $selection ]] && return
+
+      # Run the action
+      $cmd $(_core_get_folders "$selection")
+   fi
+}

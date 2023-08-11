@@ -1,0 +1,83 @@
+#!/bin/bash
+
+#####  Commands functions  #####
+# Edit this part to customize the actions run
+#  in the background by the commands
+# The pipe run :
+#  _background_init "{$args[@]}"
+#  _background_<command name> "{$args[@]}"
+# Where "{$args[@]}" is a list of papis folders
+
+_background_edit (){
+   _update_database
+   build-indexes --quiet "${flist[@]}"
+}
+
+_background_delete (){
+   papis rm -f -a "${flist[@]}" 2>>$tmplog
+   _background_notification "The following entries has been deleted :"
+   build-indexes --quiet "${flist[@]}"
+}
+
+_background_add (){
+   cmd="papis add -b -P $@ 2>>$tmplog"
+   outfolder=$(eval "$cmd")
+
+   if [[ -d $outfolder ]]; then
+      papis update -b --auto --doc-folder "$outfolder" 2>>$tmplog
+      build-indexes --quiet "$outfolder"
+      flabels="$(_set_flabels $outfolder)"
+      _background_notification "A new entry has been added to the papis library :"
+   else
+      _background_notification "No entry has been added to the library" "The entry already exist in your library."
+   fi
+}
+
+_background_tag (){
+   _update_database
+   build-indexes --quiet "${flist[@]}"
+}
+
+_background_browse (){
+   echo "papis browse -a ${flist[@]}" >/tmp/toto
+   papis browse -a "${flist[@]}" 2>> $tmplog
+}
+
+################################
+#######  core functions  #######
+# Do not edit this part
+# These functions are used by the functions above
+
+# Update papis database
+_update_database (){
+   papis update -b "${flist[@]}" 2>>$tmplog
+}
+
+# Display notifications
+_background_notification (){
+   if [[ $enable_notifications == 1 ]]; then
+      $notifyscript "$@" "$flabels" 2> /dev/null
+   fi
+}
+
+# Set 1) a list 2) a string 3) a list of 'labels' (for notifications)
+#  from the folders list given to _pipe
+_background_init (){
+   flist=()
+   flabels=""
+   for folder in "$@"; do
+      flist+=("--doc-folder")
+      flist+=("$folder")
+      flabels+="$(_set_flabels $folder)"
+   done
+}
+
+# The 'label' is the 1st 40 characters of the entry title
+_set_flabels (){
+   yml="$1/info.yaml"
+   if [[ -f $yml ]]; then
+      title=$(grep "^title:" "$yml" 2>/dev/null)
+      title="${title#*: }"
+      [[ -n $title ]] && echo "${title:0:40}\n"
+   fi
+}

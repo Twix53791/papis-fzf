@@ -1,0 +1,88 @@
+#!/bin/bash
+
+cite (){
+   [[ -z $@ ]] && return
+
+   # The citations styles are stored in this file
+   cite_file="$configdir/citation-format"
+   [[ ! -f $cite_file ]] && cite_file="$papisfzfdir/config/citation-format"
+
+ # Format the citations list to send to fzf
+   fzflist=""
+   citefilecontent="$(cat $cite_file | grep -v '^#' | grep -v '^\s*$')"
+   citefilecontent="${citefilecontent//\\n/\\\\\n}"
+   while read line; do
+      line="${line//\\n/\\\\\n}"
+      C=0
+
+      if [[ $cite_script_color =~ ^[0-9]+$ ]]; then
+         line="${line/[/\\033[94m[}"
+         line="${line/]/]\\033[${C}m}"
+      fi
+
+      if [[ $cite_default_color =~ ^[0-9]+$ ]]; then
+         C=$cite_default_color
+         line="\033[${C}m$line"
+         line="${line/|/|\\033[${C}m}"
+      fi
+
+      if [[ -n ${cite_fields_colors[@]} ]]; then
+         for field in "${cite_fields_colors[@]}"; do
+            fieldname="${field%|*}"
+            fieldcolor="${field#*|}"
+            line="${line//${fieldname}/\\033[${fieldcolor}m${fieldname}\\033[${C}m}"
+         done
+      fi
+
+      fzflist+="$line\n"
+   done < <(echo "$citefilecontent")
+
+ # Show/edit the citation format in fzf
+   _fzf_env cite
+   selected=$(echo -en "$fzflist" | sort | fzf)
+   [[ -z $selected ]] && return
+
+ # In case ctrl-e been pressed, edit the file
+   if [[ $selected == "edit" ]]; then
+      [[ -z $editor ]] &&
+         echo "papis-fzf ERROR :: No editor found. Exit." >> $tmplog &&
+         exit
+
+      $editor $edit_cite_opts "$cite_file"
+      cite "$@"
+   fi
+
+ # Format the format... (to `eval` below)
+   togrep="${selected% $cite_separator *}"
+   togrep="$togrep $cite_separator"
+   [[ $togrep == *"$richtext"* ]] && textformat=1 || textformat=0
+
+   format=$(grep "$togrep" "$cite_file")
+   format="${format#* | }"
+   format="${format//{/\${}"
+
+   if [[ $format == *"["* && $format == *"]"* ]]; then
+      scripts=$(grep -oP '(?<=\[).*?(?=\])' <<< $format)
+      for script in "${scripts[@]}"; do
+         scriptfile="${scriptsfolder}/${script}.sh"
+         format="${format/\[$script\]/\$($scriptfile)}"
+      done
+   fi
+
+ # Build a formatted list of all citations
+   tocite=""
+   for yml in "$@"; do
+      yml="${yml}/info.yaml"
+
+      for var in "${cite_fields[@]}"; do
+         declare $var="$(yq ".$var" "$yml")"
+      done
+
+      tocite+="$(eval echo \"$format\")"
+   done
+
+ # Run the cite script
+ #  $1 : richtext or not  $2 : string to cite
+   $citescript "$textformat" "$tocite"
+   exit
+}

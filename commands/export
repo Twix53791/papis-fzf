@@ -1,0 +1,18 @@
+#!/bin/bash
+# Not possible to use 'export' as name
+
+xport (){
+   [[ -z $@ ]] && return
+
+   _fzf_env xport
+   exformat=$(echo -e "bibtex\njson\nyaml" | fzf)
+   [[ -z $exformat ]] && return
+
+   outfile=$($exportfilescript)
+
+   # Send to pipe rather?
+   for folder in "$@"; do
+      papis export -f $exformat -o "$outfile" --doc-folder "$folder" 2>> $tmplog
+   done
+   sleep 1
+}

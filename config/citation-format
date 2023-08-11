@@ -1,0 +1,33 @@
+# Format :
+#   name of format | {<field1} formatting {field2} [[script]] ...
+#===========================================================================
+#     \n to print newline character
+# To send rich text to clipboard:
+#  - write in the style name a special character
+#     set by the setting 'richtext' in the config file
+#  - use markdown formatting (** for bold, * italic, etc.)
+#
+# If the next line of a format is commented, it will be displayed as preview
+# Empty lines are ignored in the output
+#
+# For more complex formatting, you can use:
+#   [author-style-name] : run the script author_styles.sh
+#                         it will run the specific author-style-name function
+#                         Edit this script and create new functions to complex
+#                         author field formatting
+#   [[custom-script]] : you can also run your own custom script
+#                       Just put the script file in papis-fzf/scripts
+#                       Put here just the basename of the script, with the extension
+#===========================================================================
+
+default | {author} ({year}), {title}, {publisher}.\n
+# Petit Jean, Michelet Françoise (2015), Titre du livre, Seuil.
+
+français | {author}, {title}, {publisher}, {year}.\n
+# Petit Jean, Michelet Françoise, Titre du livre, Seuil, 2015.
+
+français -- | **{author}**, *{title}*, {publisher}, {year}.<br />
+# \033[1mPetit Jean, Michelet Françoise\033[0m, \033[3mTitre du livre\033[0m, Seuil, 2015.
+
+français majs -- | [english-maj]. *{title}*. {publisher}. {year}.<br />
+# PETIT, Jean and MICHELET, Françoise. \033[3mTitre du livre\033[0m. Seuil. 2015.

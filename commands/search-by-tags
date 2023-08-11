@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# List entries containing the tags selected
+search-by-tags (){
+   # Set/pick up the tags with an fzf menu
+   _fzf_env search-by-tags
+   output=$(_core_list_tags searchbytags)
+   [[ -z $output ]] && return 1
+
+   fzf_opt="$(head -1 <<< $output)"
+   [[ $fzf_opt == "!exit" ]] && return
+   if [[ ${fzf_opt:0:1} == "!" ]]; then
+      tags="$(tail -n +2 <<< $output)"
+   else
+      tags="$output"; fzf_opt=""
+   fi
+
+   tags=($tags)
+
+   # Format the tags string output from the fzf selection
+   greptags=""
+   for tag in "${tags[@]}"; do
+      if [[ -z $greptags ]]; then
+         greptags="grep \"tag:$tag \" $indexcolored"
+      elif [[ $fzf_opt == "!or" ]]; then
+         greptags+="; grep \"tag:$tag \" $indexcolored"
+      else
+         greptags+=" | grep \"tag:$tag \""
+      fi
+   done
+
+   # Constitute $selection. Run _fzf_main if needed
+   if [[ $1 == "frommain" ]]; then
+      eval "$greptags" > $indextmp
+   else
+      eval "$greptags" > $indextmp
+      [[ -s $indextmp ]] && _fzf_main indextmp
+      _fzf_env search-by-tags
+      search-by-tags
+   fi
+}

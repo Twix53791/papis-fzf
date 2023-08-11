@@ -1,0 +1,49 @@
+#!/bin/bash
+
+citations (){
+   [[ $1 == "-i" ]] && cit_opt="-i" && shift
+
+   _fzf_env citations
+   matches=$($citationsscript $cit_opt "$1" | fzf)
+   [[ -z $matches ]] && return
+
+   selection=()
+   while read line; do
+      selection+=("${line##* }")
+   done <<< $matches
+
+   fzf_opt=$(< $fzf_keys)
+
+   if [[ $fzf_opt == 1 ]]; then
+      tput reset
+      $viewcitationsscript "$1" "${selection[@]}"
+
+      echo
+      echo -e "\033[34m actions: browse ($citations_display_browse) ; cite ($citations_display_cite)"
+      echo -e " menu back ($key_back_name)"
+      read -s -n 1 k
+
+      case $k in
+         $citations_display_browse) _browse_citations "$1" "${selection[@]}";;
+         $citations_display_cite) _cite_citations "$1" "${selection[@]}";;
+         $key_back) return;;
+      esac
+   fi
+}
+
+_browse_citations (){
+   doc_folder="$1"; shift
+   urls=()
+   for id in "$@"; do
+      [[ ${id:0:1} == "#" ]] &&
+         yamlfile="$doc_folder/info.yaml" ||
+         yamlfile="$doc_folder/citations.yaml"
+
+      url=$(yq "select(di == $id) | .url" "$yamlfile")
+      [[ -z $url ]] && url=$(yq "select(di == $id) | .doc_url" "$yamlfile")
+      [[ -z $url ]] && url=$(yq "select(di == $id) | .doi" "$yamlfile") && url="http://dx.doi.org/$url"
+      [[ -n $url ]] && urls+=("$url")
+   done
+   echo "browse_cit\n$(printf '%s\\n' ${urls[@]})" > $pipe
+   exit
+}

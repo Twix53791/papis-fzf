@@ -1,0 +1,80 @@
+#!/bin/bash
+
+# Run by search-by-tags, add and tag
+_core_list_tags (){
+   # Fzf menu to select/create tags
+   echo "$(grep -oP '(?<=tag:).*?(?=:)' $index)" > /tmp/toto
+   output="$(grep -oP '(?<=tag:).*?(?=:)' $index | sort -u | fzf)"
+
+   # Parse tags
+   if [[ -z $output ]]; then
+      return
+   else
+      fzf_opt="$(head -1 <<< $output)"
+      # ! : output of an fzf keybinding
+      if [[ ${fzf_opt:0:1} == "!" ]]; then
+         query="$(head -2 <<< $output | tail -1)"
+         matches="$(tail -n +3 <<< $output)"
+      # No key pressed. The first line is the fzf query.
+      else
+         query="$fzf_opt"; fzf_opt=""
+         matches="$(tail -n +2 <<< $output)"
+      fi
+
+      # Clean the query of regex symbols ^, ' and $ at the beg/end of query
+      [[ ${query:0:1} == "'" || ${query:0:1} == "^" ]] && query="${query:1}"
+      [[ ${query: -1} == "$" ]] && query="${query:0:-1}"
+
+      # search-by-tags and tag need to know the key pressed in the fzf tag menu
+      [[ $1 != "add" ]] && echo "$fzf_opt"
+
+      # Echo matches/query
+      if [[ $fzf_opt == *"!query"* && -n $matches && -n $query ]]; then
+         echo "$matches"
+         echo "$query"
+      elif [[ -z $matches && -n $query && $1 != "searchbytags" ]]; then
+         echo "$query"
+      elif [[ -n $matches ]]; then
+         echo "$matches"
+      fi
+   fi
+}
+
+# From a selection in fzf, build a list of papis-folders
+_core_get_folders (){
+   while read line; do
+      idxnum=$(grep -n "$line" $indexraw)
+      idxnum="${idxnum%%:*}"
+      folder=$(sed "${idxnum}p;d" $index)
+      folder="${folder##*|}"
+      echo "$folder"
+   done < <(echo -e "$@")
+}
+
+# From papis-folders, get fzf entries colored
+_core_get_fzfentries (){
+   for folder in "$@"; do
+      idxnum=$(grep -n "$folder" $index)
+      idxnum="${idxnum%%:*}"
+      fzfentry=$(sed "${idxnum}p;d" $indexcolored)
+
+      echo -e "$fzfentry"
+   done
+}
+
+
+
+toto (){
+   updnotif=()
+   action=""
+
+   while read folder; do
+      [[ -z $action ]] && action="$folder" && continue
+
+      if [[ $action == "browse" ]]; then
+         papis browse --doc-folder "$folder" 2>> $tmplog
+      elif [[ $action == "browse_cit" ]]; then
+         xdg-open "$folder" 2>> $tmplog
+      fi
+   done < <(echo -en "$pipein")
+}

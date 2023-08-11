@@ -1,0 +1,11 @@
+#!/bin/bash
+
+browse (){
+   [[ -z $@ ]] && return
+ # Exit and send urls to the navigator in the background
+   pipeinput="_background_browse\n"
+   pipeinput+="$(printf '%s\\n' $@)"
+   echo "$pipeinput" > $pipe
+
+   exit
+}

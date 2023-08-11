@@ -1,0 +1,92 @@
+#!/bin/bash
+# Add or remove tags to/from entries
+# Run it from the papis-fzf main menu or the 'show yaml' view
+
+tag (){
+   [[ -z $@ ]] && return
+   _fzf_env tag
+   output=$(_core_list_tags tag)
+
+   fzf_opt="$(head -1 <<< $output)"
+   # ! : output of an fzf keybinding
+   if [[ ${fzf_opt:0:1} == "!" ]]; then
+      tags="$(tail -n +2 <<< $output)"
+   else
+      tags="$output"; fzf_opt=""
+   fi
+
+   [[ -z $tags ]] && return
+   taglist=($tags)
+
+   # $@ is a list of entries
+   if [[ $fzf_opt == *"rmtag"* ]]; then
+      _remove_tags "$@"
+   else
+      _add_tags "$@"
+   fi
+}
+
+_add_tags (){
+   toUpdate=()
+   for yml in "$@"; do
+      ymldir="$yml"
+      yml="${yml}/info.yaml"
+      entrytags="$(yq '.tags' "$yml")"
+      entrytags="${entrytags//null/}"
+      locallist=("${taglist[@]}")
+
+      i=0
+      for tag in "${locallist[@]}"; do
+         [[ $entrytags =~ \W*($tag)\W* ]] && unset locallist[$i]
+         ((i++))
+      done
+
+
+      if [[ -n ${locallist[@]} ]]; then
+         if [[ -z $entrytags ]]; then
+            newvalue="${locallist[@]}"
+         else
+            newvalue="$entrytags ${locallist[@]}"
+         fi
+         yq -i ".tags = \"$newvalue\"" "$yml"
+         toUpdate+=("$ymldir")
+      fi
+   done
+
+   pipeinput="_background_tag\n"
+   pipeinput+="$(printf '%s\\n' ${toUpdate[@]})"
+   echo "$pipeinput" > $pipe
+}
+
+_remove_tags (){
+   toUpdate=()
+   for yml in "$@"; do
+      ymldir="$yml"
+      yml="${yml}/info.yaml"
+      entrytags="$(yq '.tags' "$yml")"
+      entrytags="${entrytags//null/}"
+      [[ -z $entrytags ]] && continue
+
+      newvalue=($entrytags)
+      locallist="${taglist[@]}"
+
+      i=0
+      for tag in "${newvalue[@]}"; do
+         [[ $locallist =~ \W*($tag)\W* ]] && unset newvalue[$i]
+         ((i++))
+      done
+
+      newvalue="${newvalue[@]}"
+      if [[ -n $newvalue && $newvalue != $entrytags ]]; then
+         yq -i ".tags = \"$newvalue\"" "$yml"
+         toUpdate+=("$ymldir")
+      elif [[ -z $newvalue ]]; then
+         yq -i ".tags = del(.tags)" "$yml"
+         toUpdate+=("$ymldir")
+      fi
+   done
+
+   pipeinput="_background_tag\n"
+   pipeinput+="$(printf '%s\\n' ${toUpdate[@]})"
+   echo "$pipeinput" > $pipe
+}

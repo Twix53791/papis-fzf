@@ -1,0 +1,162 @@
+#!/bin/bash
+
+add (){
+   [[ $1 == "--auto" ]] && auto=1 && shift || auto=""
+
+   [[ -z $1 ]] && echo "papis-fzf ERROR :: No url to add. Exit" >> $tmplog && exit
+   url="$1"
+   flags=""; doi=(); settags=()
+
+
+   # If doi url
+   [[ $url == *"doi.org"* ]] && flags+="--doi" && doi=("--from" "doi")
+
+   # If --auto option is set, run the entire command in the background
+   # tags are set to the last tags added to an entry
+   lasttags="$indexdir/add-last-tags"
+   if [[ -n $auto && -f $lasttags ]]; then
+      tags=$(< $lasttags)
+   else
+      # Display the fzf menu to choose/set tags
+      _fzf_env add
+      tags=$(echo $(_core_list_tags add))
+      echo "$tags" > $lasttags
+
+      # Continue ?
+      echo -e "\033[91madd the reference to your papis library ?"
+      if [[ -n $add_esc ]]; then
+         echo -e "\033[32mcancel (\033[94m${add_esc_name}\033[32m) ; edit the yaml file before saving (\033[94m${add_edit}\033[32m) ; create a new entry manually (\033[94m${add_manually}\033[32m)"
+         echo -e "back to tags selection (\033[94m${add_back_name}\033[32m) ; any key to continue"
+      else
+         echo -e "\033[32maccept (\033[94m${add_accept_name}\033[32m) ; edit the yaml file before saving (\033[94m${add_edit}\033[32m) ; create a new entry manually (\033[94m${add_manually}\033[32m)"
+         echo -e "back to tags selection (\033[94m${add_back_name}\033[32m) ; any key to cancel and exit"
+      fi
+      echo -e "\033[33murl: $1"
+      echo -e "\033[35mtags: $tags\033[0m"
+      read -s -n1 key
+
+      if [[ $key == $add_back ]]; then
+         tput reset
+         add "$url"
+      elif [[ $key == $add_edit ]]; then
+         echo -e "\033[94madd and edit the yaml file...\033[0m"
+      elif [[ $key == $add_manually ]]; then
+         _add_manually "$url"
+      elif [[ -n $add_esc ]]; then
+         case $key in
+            $add_esc) exit;;
+                   *) :;;
+         esac
+      else
+         case $key in
+            $add_accept) :;;
+                   *) exit;;
+         esac
+      fi
+   fi
+
+   # Set tags if needed
+   if [[ -n $tags ]]; then
+      flags+="--tags"
+      settags=("--set-after" "tags")
+   fi
+
+   # Add the reference with papis
+   if [[ $key == $add_edit ]]; then
+      export EDITOR=$editor
+      outfolder=$(papis add -P "${settags[@]}" "$tags" --edit "${doi[@]}" "$1" 2>> $tmplog)
+      build-indexes --quiet "$outfolder"
+   else
+      # Run in the background:
+      pipeinput="_background_add\n"
+      pipeinput+="${settags[@]} $tags ${doi[@]} $1"
+
+      echo "$pipeinput" > $pipe
+   fi
+}
+
+# Run from _add as a specific action
+_add_manually (){
+   template="$configdir/template.yaml"
+   newyml="$tmpdir/papis-fzf-create-new-entry.yaml"
+   cp "$template" "$newyml"
+
+   if [[ -n $1 && $1 == *"doi.org"* ]]; then
+      yq -i ".doi = \"$1\"" "$tmpyml"
+   elif [[ -n $1 && $1 == *"http"* ]]; then
+      yq -i ".url = \"$1\"" "$tmpyml"
+   fi
+
+   nano "$newyml"
+
+   tmpyml="$tmpdir/fzf-tmpyaml-$EPOCHSECONDS.yaml"
+   while read line; do
+      value="${line#*:}"
+      [[ $line == *":"* && $value != *[![:space:]]* ]] && continue
+      [[ ${line:0:1} == "#" ]] && continue
+      echo "$line" >> $tmpyml
+   done < "$newyml"
+
+   _parse_author_list $tmpyml
+
+   echo "papis add -b --from yaml $tmpyml 2>> $tmplog" > $pipe
+}
+
+_parse_author_list (){
+ # Grab the manually writed author field
+   fieldvalue=$(yq '.author' $1)
+
+ # Parse fieldvalue, making an array of authors
+   authors=()
+   while [[ -n $fieldvalue ]]; do
+      authors+=("${fieldvalue%%;*}")
+      fieldvalue="${fieldvalue#*;}"
+      [[ $fieldvalue != *";"* ]] &&
+         authors+=("$fieldvalue") &&
+         fieldvalue=""
+   done
+
+ # Write the author_list fields
+   if [[ -n ${authors[@]} ]]; then
+      echo "author_list:" >> $1
+
+      for auth in "${authors[@]}"; do
+       # Remove spaces around ; separator
+         auth="${auth}//; /;}"
+         auth="${auth}// ;/;}"
+
+       # Set affiliation if given
+         if [[ $auth == *"["* && $auth == *"]"* ]]; then
+            auth="{auth// [/[}"
+            affiliation="${auth#*[}"
+            affiliation="${affiliation%]*}"
+         else
+            affiliation=""
+         fi
+
+         [[ -n $affiliation ]] && auth="${auth/\[$affiliation\]/}"
+
+        # Parse the couples of 'given, family' names
+         if [[ $auth != *","* ]]; then
+            [[ ${auth:0:1} == " " ]] && auth="${auth:1}"
+            family="${auth#* }"
+            given="${auth%% *}"
+         else
+          #Remove spaces around ,
+            auth="${auth}//, /,}"
+            auth="${auth}// ,/,}"
+          # Set family/given values
+            family="${auth#*,}"
+            given="${auth%%,*}"
+         fi
+
+        # Write the entries to yaml file
+         echo "- affiliation: [$affiliation]" >> $1
+         echo "  family: $family" >> $1
+         echo "  given: $given" >> $1
+      done
+   fi
+
+ # Format author fields with author.sh
+   $authorscript $1
+}

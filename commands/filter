@@ -1,0 +1,50 @@
+#!/bin/bash
+
+# Filter the results with a complex pattern or regex
+filter (){
+   query="${1/filter:/}"
+   query="${query/:filter /}"
+   [[ ${query:0:1} == " " ]] && query="${query:1}"
+
+   [[ -z $query ]] && return
+   [[ -n $debug ]] && echo "papis-fzf DEBUG :: filter index_fields : ${index_fields[@]}"
+
+   # Get the fields order
+   # (build a dict fieldname/fieldcolumn)
+   declare -A fields
+
+   i=1
+   for f in "${index_fields[@]}"; do
+      fields[$f]=$i
+      ((i++))
+   done
+
+   # Replace the fields names in the query
+   for fname in "${index_fields[@]}"; do
+      query="${query//${fname}/\$${fields[$fname]}}"
+   done
+
+   query="${query//:\'/==\"}"
+   query="${query//:/\~\"}"
+   query="${query// AND/\" &&}"
+   query="${query// OR/\" ||}"
+   query="$query\""
+   query="${query//)\"/\")}"
+
+   [[ -n $debug ]] && echo "papis-fzf DEBUG :: filter awk query: $query"
+
+   # Search with awk
+   query="awk -v FS=\"|\" -v IGNORECASE=1 '$query {print NR}' $index"
+
+   # Display the output with fzf
+   output=$(eval "$query")
+   [[ -n $debug ]] && echo "papis-fzf DEBUG :: filter awk results: $output"
+
+   if [[ -z $output ]]; then
+      echo -n "" > $indextmp
+      _fzf_main indextmp
+   else
+      sed -n "$(sed -z 's/\n/p;/g' <<< $output)" $indexcolored > $indextmp
+      _fzf_main indextmp
+   fi
+}

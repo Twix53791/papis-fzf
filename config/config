@@ -1,0 +1,148 @@
+# Lines can be commented
+# the file is sourced by papis-fzf
+# format: variablename=value
+
+# Set the terminal used to run papis-fzf
+terminal=kitty
+
+# Set the options of the terminal
+# Fzf-papis run the command: <terminal> <options> -e papis-fzf <command>
+# It will be transform to a list with bash ($terminal_options) : no spaces allowed in arguments
+terminal_options="-o font_family=Iosevka-Term-Extended -o bold_font=Iosevka-Term-Bold-Extended -o italic_font=Iosevka-Term-Extended-Oblique -o bold_italic_font=Iosevka-Term-Bold-Extended-Oblique -o background_opacity=0.9"
+
+# Set the editor
+editor=nano
+
+# Options used when editing the citation-format file (optional)
+edit_cite_opts="-Y python"
+
+# Enable notifications
+enable_notifications=1
+
+
+############################
+### Indexes of fzf menus ###
+############################
+
+# Set the fields indexed in the main index file
+# ! Those fields must exist in the whoosh database
+#     = set in papis config by whoosh-schema-fields=
+# ! Those fields and only thos will be "searchables"
+#    with the filter: command
+# The variable format is a python list, as it is read by build.py
+index_fields=('title' 'author' 'year' 'publisher' 'doi' 'url' 'note' 'tags')
+
+# Fields DISPLAYED in the fzf menus
+# ! Must has to be indexed in index_fields
+fzf_fields=('title' 'author' 'year' 'publisher' 'tags' 'note')
+fzf_colors=('\033[33m' '\033[32m' '\033[34m' '\033[36m'  '\033[35m' '\033[93m')
+# doi '\033[94m'
+
+############################
+### Citation-format file ###
+############################
+# Enable fields in the citation format
+# <citation format name> <separator character> <citation format>
+#
+# -The fields set here can be used in citation-format file
+#   quoting them between curly brackets {author}
+# -They must be real field names of the database
+# -Each <citation format name> has to be unique
+cite_fields=('author' 'title' 'publisher' 'year')
+
+# Set the default author style (stored in author_styles.sh)
+#  used by author.sh when add en entry
+author_style=default
+
+# Set the <separator character>
+cite_separator="|"
+
+# Enable rich text formatting string pattern (optional)
+# This string has to be writed in the <citation format name>
+richtext="--"
+
+# Colors of fields (optional)
+# Format: {fieldname}|<ansi color number> (32 for \033[32m)
+cite_fields_colors=('{author}|32' '{title}|33' '{year}|34' '{publisher}|36' '{volume}|36' '{month}|36' '{doi}|94')
+
+# The default color (optional)
+cite_default_color=35
+
+# Script name color (optional)
+cite_script_color=94
+
+# Citation preview color (fzf-preview) (optional)
+cite_preview_color=34
+
+
+#############################
+######## keybindings ########
+#############################
+
+### Fzf menus keybindings
+# !!! if one of those variable is not set,
+#  fzf will crash
+
+# Generals
+selectall=ctrl-a
+deselectall=alt-a
+help=ctrl-h
+
+# Main menu (list references from list_all or search_by_tags)
+main_show=alt-enter
+main_searchbytags=ctrl-s
+main_edit=ctrl-e
+main_browse=ctrl-b
+main_tag=ctrl-t
+main_export=ctrl-x
+main_citations=ctrl-c
+main_delete=ctrl-d
+main_refresh=ctrl-r
+
+# List_tags (search_by_tags menu)
+tags_or=alt-enter
+
+# Tag entry (add/remove tags on references)
+tag_remove=alt-enter
+tag_query_and_add=ctrl-q
+tag_query_and_rm=alt-q
+
+# Add (select tags menu before adding en entry)
+add_query=alt-enter
+
+# Cite (choose between citation formats)
+cite_edit=ctrl-e
+
+# Citations view
+citations_display=enter
+citations_browse=alt-enter
+citations_cite=ctrl-c
+citations_display_cite=c
+citations_display_browse=b
+
+### Display view keybindings
+key_cite=$'\0A'
+key_cite_name=enter
+key_edit=e
+key_tag=t
+key_citations=c
+key_browse=b
+key_export=x
+key_delete=d
+key_back_name=backspace
+key_back=$'\177'
+key_exit=q
+key_exit_name=q
+
+# OR only one key for exit/back + default_anyother_key: exit or return
+
+### Add confirm view keybindings
+## add_accept and add_esc are mutually exclusive. Use one or the other
+add_edit=e
+add_manually=m
+#add_accept="$'\n'"
+#add_accept_name="y"
+add_esc=$'\e'
+add_esc_name=ESC
+add_back=$'\177'
+add_back_name=backspace
