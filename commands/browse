@@ -7,5 +7,12 @@ browse (){
    pipeinput+="$(printf '%s\\n' $@)"
    echo "$pipeinput" > $pipe
 
-   exit
+ # Exit or hide if HIDE_ON_EXIT
+   if [[ -n $HIDE_ON_EXIT ]]; then
+      termpid=$(pgrep -P $HIDE_ON_EXIT)
+      window=$(xdo id -p $termpid)
+      $hidescript $window
+   else
+      exit
+   fi
 }

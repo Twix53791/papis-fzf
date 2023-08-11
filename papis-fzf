@@ -1,6 +1,106 @@
 #!/bin/bash
+# MADE by Twix :: https://github.com/Twix53791
+#                 twixgithub@protonmail.com
+#=============================================
+# DEPENDENCIES
+#  - fzf
+#  - papis
+#  - whoosh (see papis documentation to install it)
+#=============================================
 
-# Set the configuration/env. Takes no argument
+##############################################
+#######   Run the commands/fzf menu   ########
+##############################################
+
+### Init the program
+_main (){
+   [[ $1 == "preview" ]] && shift && _init_preview "$@"
+   [[ $1 == "--debug" || $1 == "-d" ]] && debug=1 && shift
+
+   # Set variables, sources files, config...
+   _init
+
+   trap '_exit' EXIT
+
+   # Init the pipe running background tasks
+   pipe="$tmpdir/papis-fzf-pipe-$$"
+   _pipe "$pipe" &
+
+   # By security, make sure the pipe has been created before running any command
+   while [[ ! -p $pipe ]]; do
+      sleep .05
+   done
+
+   # If a command is specified, run it
+   if [[ -n $1 && ${1:0:1} != "_" ]]; then
+      _fzf_env $1
+      "$@"
+      exit
+
+   else
+      # The main loop
+      _fzf_main
+   fi
+}
+
+### The main fzf menu (list all the references of the database from $indexcolored)
+_fzf_main (){
+   # Set fzf env
+   _fzf_env main
+
+   # Display fzf menu
+   if [[ -n $@ ]]; then
+      fzfoutput=$(cat $indextmp | sort | fzf-papis)
+   else
+      fzfoutput=$(cat $indexcolored | sort | fzf-papis)
+   fi
+
+   # Parse the ouput
+   # The $cmd is printed by fzf main menu key bindings
+   # To discriminate between a cmd and a query (fzf prompt)
+   #  the cmd must begin by '!'
+   cmd="$(head -1 <<< $fzfoutput)"
+   if [[ ${cmd:0:1} == '!' ]]; then
+      cmd="${cmd:1}"
+      query="$(head -2 <<< $fzfoutput | tail -1)"
+      selection="$(tail -n +3 <<< $fzfoutput)"
+   else
+      query="$cmd"
+      selection="$(tail -n +2 <<< $fzfoutput)"
+   fi
+
+   # Execute the commands
+   if [[ $cmd == ":refresh" ]]; then
+      build-indexes --quiet --background
+      _fzf_main
+   elif [[ $cmd == ":exit" ]]; then
+      [[ -z $@ ]] && exit || return
+   elif [[ $cmd == ":build-indexes" ]]; then
+      build-indexes
+   elif [[ $cmd == ":search-by-tags" ]]; then
+      if search-by-tags frommain; then
+         _fzf_main indextmp
+      fi
+   elif [[ $cmd =~ ^filter: || $cmd =~ ^:filter ]]; then
+      filter "$query"
+   elif [[ ${cmd:0:1} == ":" ]]; then
+      ${cmd:1} $(_core_get_folders "$selection")
+
+      if [[ -n $HIDE_ON_EXIT ]]; then
+         [[ $cmd == ":browse" || $cmd == ":cite" ]] &&
+         exit
+      fi
+   fi
+
+   _fzf_main
+}
+
+
+##############################################
+##########   Init/exit functions   ###########
+##############################################
+
+# Init the program. Set the configuration/env. Takes no argument
 _init (){
    ########  Set working directories  ##########
    papisfzfdir=$HOME/.papis-fzf
@@ -43,9 +143,9 @@ _init (){
    done
 
    # Backup
-   for file in $(ls $papisfzfdir/scripts); do
+   for file in $(ls $papisfzfdir/config/scripts); do
       varname="${file%.*}script"
-      [[ -z ${!varname} ]] && declare -g $varname="$papisfzfdir/scripts/$file"
+      [[ -z ${!varname} ]] && declare -g $varname="$papisfzfdir/config/scripts/$file"
    done
 
    ############     Source config     ###########
@@ -97,86 +197,6 @@ _init_preview (){
    exit
 }
 
-##############################################
-#######   Run the commands/fzf menu   ########
-##############################################
-
-### Init the program
-_main (){
-   [[ $1 == "preview" ]] && shift && _init_preview "$@"
-   [[ $1 == "--debug" || $1 == "-d" ]] && debug=1 && shift
-
-   # Set variables, sources files, config...
-   _init
-
-   trap '_exit' EXIT
-
-   # Init the pipe running background tasks
-   pipe="$tmpdir/papis-fzf-pipe-$$"
-   _pipe "$pipe" &
-
-   # By security, make sure the pipe has been created before running any command
-   while [[ ! -p $pipe ]]; do
-      sleep .05
-   done
-
-   # If a command is specified, run it
-   if [[ -n $1 && ${1:0:1} != "_" ]]; then
-      _fzf_env $1
-      "$@"
-
-   else
-      # The main loop
-      _fzf_main
-   fi
-}
-
-### The main fzf menu (list all the references of the database from $indexcolored)
-_fzf_main (){
-   # Set fzf env
-   _fzf_env main
-
-   # Display fzf menu
-   if [[ -n $@ ]]; then
-      fzfoutput=$(cat $indextmp | sort | fzf-papis)
-   else
-      fzfoutput=$(cat $indexcolored | sort | fzf-papis)
-   fi
-
-   # Parse the ouput
-   # The $cmd is printed by fzf main menu key bindings
-   # To discriminate between a cmd and a query (fzf prompt)
-   #  the cmd must begin by '!'
-   cmd="$(head -1 <<< $fzfoutput)"
-   if [[ ${cmd:0:1} == '!' ]]; then
-      cmd="${cmd:1}"
-      query="$(head -2 <<< $fzfoutput | tail -1)"
-      selection="$(tail -n +3 <<< $fzfoutput)"
-   else
-      query="$cmd"
-      selection="$(tail -n +2 <<< $fzfoutput)"
-   fi
-
-   # Execute the commands
-   if [[ $cmd == ":refresh" ]]; then
-      build-indexes --quiet --background
-      _fzf_main
-   elif [[ $cmd == ":exit" ]]; then
-      [[ -z $@ ]] && exit || return
-   elif [[ $cmd == ":build-indexes" ]]; then
-      build-indexes
-   elif [[ $cmd == ":search-by-tags" ]]; then
-      if search-by-tags frommain; then
-         _fzf_main indextmp
-      fi
-   elif [[ $cmd =~ ^filter: || $cmd =~ ^:filter ]]; then
-      filter "$query"
-   elif [[ ${cmd:0:1} == ":" ]]; then
-      ${cmd:1} $(_core_get_folders "$selection")
-   fi
-
-   _fzf_main
-}
 
 # Close the pipe. Clean the terminal (needed with the --no-clear option in fzf-env)
 _exit (){
@@ -185,6 +205,7 @@ _exit (){
    tput rmcup
 }
 
+#######################
 # Run the main function
 _main "$@"
 
