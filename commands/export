@@ -1,6 +1,10 @@
 #!/bin/bash
-# Not possible to use 'export' as name
-
+#===============================================
+# Export the entries
+# Use papis export
+# It is named 'xport' because it is not possible
+#  to use 'export' as name
+#===============================================
 xport (){
    [[ -z $@ ]] && return
 

@@ -1,6 +1,8 @@
 #!/bin/bash
+#===============================================
+# Internal command run by the fzf --preview flag
 # preview_help is set by papis-fzf
-
+#===============================================
 preview (){
    [[ -f $preview_help ]] && help=$(< $preview_help)
    [[ -n $help ]] && echo -n "" > $preview_help

@@ -1,9 +1,10 @@
 #!/bin/bash
-
+#===============================================
 # Problem : if the script close, the access to the content copied if lost
 # So it paste straight away : xte 'keydown Control_L' 'key v' 'keyup Control_L'
 # A small sleep is needed after xte command
 # $1 = 1 if format name contains the $richtext string set in the config file
+#===============================================
 
 tocite="$2"
 

@@ -1,5 +1,8 @@
 #!/bin/bash
+#===============================================
 # This script set the fzf environnement
+# It is run by the commands functions
+#===============================================
 
 _fzf_env (){
    if [[ $1 == "main" ]]; then

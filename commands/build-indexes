@@ -1,4 +1,9 @@
 #!/bin/bash
+#===============================================
+# Build the indexes files (index, index-raw,
+#  index-colored)
+# Use build.py script
+#===============================================
 
 build-indexes (){
    [[ $1 == "--quiet" ]] && quiet=1 && shift

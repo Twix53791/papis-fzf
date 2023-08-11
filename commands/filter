@@ -1,4 +1,10 @@
 #!/bin/bash
+#================================================
+# Execute complex searches in the whoosh database
+# Use the whoosh syntax:
+#  ex: filter: author: Jean AND author: Paul
+#       OR (publisher: Elsevier AND tags: toto)
+#================================================
 
 # Filter the results with a complex pattern or regex
 filter (){

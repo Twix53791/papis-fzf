@@ -1,5 +1,5 @@
 #!/bin/bash
-
+#===============================================
 # Open a pipe to run processes on the background
 # There is one pipe for each papis-fzf instance
 # $1 pipe name ; $2 pid papis-fzf
@@ -8,6 +8,7 @@
 #  first line: the command to run
 #  second line: the notification text to display after (can be empty)
 #  third+ lines: the papis folders, one folder by line
+#===============================================
 
 _pipe (){
    [[ ! -p $1 ]] && mkfifo "$1"

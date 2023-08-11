@@ -1,6 +1,6 @@
 # Lines can be commented
-# the file is sourced by papis-fzf
-# format: variablename=value
+# The file is sourced by papis-fzf
+#  format: variablename=value
 
 # Set the terminal used to run papis-fzf
 terminal=kitty

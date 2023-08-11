@@ -1,10 +1,12 @@
 #!/bin/bash
+#===============================================
 # This script display a selected content of the yaml files
 #  of the library entries in papis-fzf.
 # Edit it to custom the fields displayed.
 # The yq -C output is already colored, the values set to \e[32m
 # To change the color, just replace 32m by the code you want
 # ex: author="${author/32m/92m}"
+#===============================================
 
 doc_folder="$1"
 shift

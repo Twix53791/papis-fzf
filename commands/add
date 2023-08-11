@@ -1,4 +1,8 @@
 #!/bin/bash
+#===============================================
+# Add entries the the database from url/doi
+# Use papis add
+#===============================================
 
 add (){
    [[ $1 == "--auto" ]] && auto=1 && shift || auto=""

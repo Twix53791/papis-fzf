@@ -1,6 +1,9 @@
 #!/bin/bash
+#===============================================
+# Functions run in the background by pipe()
+#===============================================
 
-#####  Commands functions  #####
+###########  Commands functions  ############
 # Edit this part to customize the actions run
 #  in the background by the commands
 # The pipe run :

@@ -1,15 +1,15 @@
 #!/bin/bash
+#====================================
 # Take as arguments
 #  - a style name
 #  - a list of pairs 'family|given'
-
-
+#
 ## Structure :
 # execute _main to choose the style
 # execute _<style name> function
 #     - each function exec a for loop through $@
 # return the author_field string formatted
-
+#====================================
 
 ###### STYLES FUNCTIONS ######
 # The functions names must be correspond to the style name given as argument

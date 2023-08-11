@@ -1,4 +1,8 @@
 #!/bin/bash
+#===============================================
+# Filter database entries by tags
+# Don't use papis but only the papis-fzf index
+#===============================================
 
 # List entries containing the tags selected
 search-by-tags (){

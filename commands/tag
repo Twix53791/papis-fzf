@@ -1,7 +1,9 @@
 #!/bin/bash
+#===============================================
 # Add or remove tags to/from entries
-# Run it from the papis-fzf main menu or the 'show yaml' view
-
+# Run it from the papis-fzf main menu or
+#  the 'show yaml' view
+#===============================================
 tag (){
    [[ -z $@ ]] && return
    _fzf_env tag

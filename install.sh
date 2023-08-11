@@ -1,6 +1,8 @@
 #!/bin/bash
+#===============================================
 # To overwrite user config (by default ~/.config/papis-fzf)
 #  run this script with '--overwrite-user-config' (or '-o') flag
+#===============================================
 
 PAPIS_FZF_DIR=$HOME/.papis-fzf
 PAPIS_FZF_CONFIG=$HOME/.config/papis-fzf

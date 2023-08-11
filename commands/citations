@@ -1,4 +1,7 @@
 #!/bin/bash
+#===============================================
+# Show the citations of an entry in a fzf menu
+#===============================================
 
 citations (){
    [[ $1 == "-i" ]] && cit_opt="-i" && shift

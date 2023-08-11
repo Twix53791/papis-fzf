@@ -1,5 +1,8 @@
 #!/bin/bash
-
+#===============================================
+# Browse entries
+# Use papis browse
+#===============================================
 browse (){
    [[ -z $@ ]] && return
  # Exit and send urls to the navigator in the background

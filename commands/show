@@ -1,6 +1,9 @@
 #!/bin/bash
+#===============================================
+# Show the content of the choosen fields (set in
+#  config) of the info.yaml files of the entries
 # The keybindings are set in the config file
-
+#===============================================
 show (){
    [[ -z $@ ]] && return
    $viewyamlscript "$@"

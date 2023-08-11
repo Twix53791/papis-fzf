@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-
-import sys
-import ast
-
 # Edit this function to change the fields displayed in the papis-fzf menu
 # To be added here, a field MUST be stored in the whoosh papis database
 # Set the fields stored in the database in the papis config file
 #  by editing the value 'whoosh-schema-fields'
 # Format:
 # entry = entry + <color> + hit['<fiedname>']
+
+
+import sys
+import ast
 
 #def setentry(dictArray):
 dictArray = ast.literal_eval(sys.argv[1])
