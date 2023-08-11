@@ -1,3 +1,7 @@
+# This script build the indexes files
+# index, index-raw, and index-colored
+# By default in ~/.cache/papis-fzf
+
 import os
 import sys
 import papis.database.whoosh
