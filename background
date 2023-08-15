@@ -10,41 +10,51 @@
 #  _background_init "{$args[@]}"
 #  _background_<command name> "{$args[@]}"
 # Where "{$args[@]}" is a list of papis folders
+# build-indexes is a command
 
 _background_edit (){
-   _update_database
+   _update_database "${dflist[@]}"
    build-indexes --quiet "${flist[@]}"
 }
 
 _background_delete (){
-   papis rm -f -a "${flist[@]}" 2>>$tmplog
+   papis rm -f -a "${dflist[@]}" 2>>$tmplog
+
    _background_notification "The following entries has been deleted :"
    build-indexes --quiet "${flist[@]}"
 }
 
 _background_add (){
-   papis add --print-folder $tmpdir/add-papis-folder --only-data --batch "$@" 2>>$tmplog
-   [[ -f $tmpdir/add-papis-folder ]] && outfolder=$(< $tmpdir/add-papis-folder)
-   echo -n "" > $tmpdir/add-papis-folder
+   # Set add-fetch-citations = True in papis config to build automatically a citations file
 
-   if [[ -d $outfolder ]]; then
-      papis update -b --auto --doc-folder "$outfolder" 2>>$tmplog
-      build-indexes --quiet "$outfolder"
-      flabels="$(_set_flabels $outfolder)"
-      _background_notification "A new entry has been added to the papis library :"
+   # Compare the library before and after the adding of the new entry
+   # To grab the new folder created
+   tmpbefore=$tmpdir/add-folders-before
+   tmpafter=$tmpdir/add-folders-after
+   find '/home/archx/Documents/papers' -mindepth 1 -type d > $tmpbefore
+
+   # Papis command
+   eval "papis add --batch $@ &>>$tmplog"
+
+   find '/home/archx/Documents/papers' -mindepth 1 -type d > $tmpafter
+   iscreated=$(diff $tmpbefore $tmpafter | tail -1)
+
+   if [[ -n $iscreated ]]; then
+      flabels="$(_set_flabels ${iscreated:2})"
+      build-indexes --quiet "${iscreated:2}"
+      _background_notification "A new entry has been added to the papis library"
    else
-      _background_notification "No entry has been added to the library" "The entry already exist in your library."
+      _background_notification "No entry has been added to the library" "See $tmplog for details."
    fi
 }
 
 _background_tag (){
-   _update_database
+   _update_database "${dflist[@]}"
    build-indexes --quiet "${flist[@]}"
 }
 
 _background_browse (){
-   echo "papis browse -a ${flist[@]}" >/tmp/toto
-   papis browse -a "${flist[@]}" 2>> $tmplog
+   papis browse -a "${dflist[@]}" 2>> $tmplog
 }
 
 ################################
@@ -54,7 +64,7 @@ _background_browse (){
 
 # Update papis database
 _update_database (){
-   papis update -b "${flist[@]}" 2>>$tmplog
+   papis update -b "$@" 2>>$tmplog
 }
 
 # Display notifications
@@ -64,13 +74,18 @@ _background_notification (){
    fi
 }
 
-# Set 1) a list 2) a string 3) a list of 'labels' (for notifications)
-#  from the folders list given to _pipe
+# Set
+#  1) flist: a list of papis-folders to send to build-indexes
+#  2) dflist: list of '--doc-folder' 'papis-folder' to send to papis
+#  3) flabels: a list of 'labels' (for notifications)
+#   from the folders list given to _pipe
 _background_init (){
    flist=()
+   dflist=()
    flabels=""
    for folder in "$@"; do
-      flist+=("--doc-folder")
+      dflist+=("--doc-folder")
+      dflist+=("$folder")
       flist+=("$folder")
       flabels+="$(_set_flabels $folder)"
    done

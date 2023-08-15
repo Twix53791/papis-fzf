@@ -6,8 +6,7 @@
 # To use the pipe, just `echo <text> > $pipe`
 # The <text> must be formatted as follow:
 #  first line: the command to run
-#  second line: the notification text to display after (can be empty)
-#  third+ lines: the papis folders, one folder by line
+#  second+ lines: the papis folders, one folder by line
 #===============================================
 
 _pipe (){
@@ -19,6 +18,7 @@ _pipe (){
          # Set the function to run and the arguments
          func=$(echo -e "$pipein" | head -1)
          args=()
+         echo "$func || ${args[@]}" > /tmp/tata
          while read line; do
             [[ -n $line ]] && args+=("$line")
          done < <(echo -e "$pipein" | tail -n +2)

@@ -65,20 +65,3 @@ _core_get_fzfentries (){
       echo -e "$fzfentry"
    done
 }
-
-
-
-toto (){
-   updnotif=()
-   action=""
-
-   while read folder; do
-      [[ -z $action ]] && action="$folder" && continue
-
-      if [[ $action == "browse" ]]; then
-         papis browse --doc-folder "$folder" 2>> $tmplog
-      elif [[ $action == "browse_cit" ]]; then
-         xdg-open "$folder" 2>> $tmplog
-      fi
-   done < <(echo -en "$pipein")
-}
