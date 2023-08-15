@@ -6,12 +6,22 @@
 #===============================================
 
 build-indexes (){
-   [[ $1 == "--quiet" ]] && quiet=1 && shift
-   [[ $1 == "--background" ]] && background=1 && shift
+   [[ $1 == "--quiet" || $1 == "-q" ]] && quiet=1 && shift
+
+   # Run in the background via pipe
+   # Pipe will re-run this script with --quiet flag
+   # NOTE: this flag is only usefull when building the
+   #  indexes. When only some entries are updated,
+   #  build-indexes is already run in the background
+   #  (cf. 'background' file)
+   if [[ $1 == "--background" || $1 == "-b" ]]; then
+      pipeinput="build-indexes --quiet\n"
+      echo "$pipeinput" > $pipe
+      return
+   fi
+
    # If a list of papis-folders is given, update database
    # 1) delete the entries in all the indexes
-   # 2) the python script recreate the entries (updated) if needed
-
    if [[ -n $@ ]]; then
       todelete=""
       for folder in "$@"; do
@@ -20,6 +30,7 @@ build-indexes (){
          [[ -n $nth ]] && todelete+="${nth}d;"
       done
 
+      # Delete the entries from indexes by line number
       if [[ -n $todelete ]]; then
          sed -i "$todelete" $index
          sed -i "$todelete" $indexraw
@@ -27,13 +38,8 @@ build-indexes (){
       fi
    fi
 
-   if [[ -n $background ]]; then
-      pipeinput="\n"
-      pipeinput+="Indexes rebuilt.\n"
-      echo "$pipeinput" > $pipe
-   else
-      python $papisfzfdir/python/build.py "$@"
-   fi
+   # 2) the python script recreate the entries (updated) if needed
+   python $papisfzfdir/build.py "$@"
 
    if [[ $? != 0 ]]; then
       echo "papis-fzf ERROR :: fail to build the index. Exit" >> $tmplog && exit

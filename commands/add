@@ -87,7 +87,7 @@ add (){
    else
       # Run in the background:
       pipeinput="_background_add\n"
-      pipeinput+="${settags[@]} $tags ${doi[@]} $1"
+      pipeinput+="--merge-data last --only-data ${settags[@]} $tags ${doi[@]} $url"
 
       echo "$pipeinput" > $pipe
    fi
