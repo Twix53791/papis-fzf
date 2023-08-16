@@ -122,7 +122,7 @@ _citations_show (){
 
    # Wait for user input
    echo
-   echo -e "\033[34m actions: browse ($citations_display_browse) ; cite ($citations_display_cite)"
+   echo -e "\033[34m actions: browse ($citations_show_browse) ; cite ($citations_show_cite)"
    echo -e " menu back ($key_back_name)"
    read -s -n 1 k
 }

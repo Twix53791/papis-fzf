@@ -1,9 +1,7 @@
 #!/bin/bash
-#===============================================
 # This script display a selected content of the yaml files
 #  of the library entries in papis-fzf.
 # Edit it to custom the fields displayed.
-#===============================================
 
 tput reset
 

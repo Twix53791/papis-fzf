@@ -1,10 +1,8 @@
 #!/bin/bash
-#====================================
 # Run author_styles.sh as child
 # Take a yaml file as argument $1
 # The author_styles.sh location as $2
 # And a style name as $3
-#====================================
 
 [[ ! -f $1 || ! $1 =~ \.yaml$ ]] && exit
 styles_script="$2"

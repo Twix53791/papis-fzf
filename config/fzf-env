@@ -1,8 +1,5 @@
 #!/bin/bash
-#===============================================
 # This script set the fzf environnement
-# It is run by the commands functions
-#===============================================
 
 _fzf_env (){
    if [[ $1 == "main" ]]; then
@@ -21,6 +18,7 @@ _fzf_env (){
                                --bind '$main_citations:execute(echo "!:citations")+accept' \
                                --bind '$main_export:execute(echo "!:xport")+accept' \
                                --bind '$main_refresh:execute(echo "!:refresh")+abort' \
+                               --bind '$main_yank:execute-silent($yankscript {})' \
                                --bind '$selectall:select-all' \
                                --bind '$deselectall:deselect-all' \
                                --bind 'esc:execute(echo "!:exit")+abort' \
@@ -59,6 +57,14 @@ _fzf_env (){
                                --bind '$help:execute-silent(echo "add" > $preview_help)+refresh-preview' \
                                --preview='papis-fzf preview' \
                                --preview-window='bottom,8%,wrap,border-none'"
+   elif [[ $1 == "add-nobackground" ]]; then
+    # Used by add
+      export FZF_DEFAULT_OPTS="--reverse -m --ansi \
+                               --bind 'change:first' \
+                               --bind '$selectall:select-all' \
+                               --bind '$deselectall:deselect-all' \
+                               --preview='echo {}' \
+                               --preview-window='bottom,30%,wrap'"
    elif [[ $1 == "subselection" ]]; then
     # Used by show
       export FZF_DEFAULT_OPTS="--reverse -m --ansi --no-clear \
@@ -84,11 +90,12 @@ _fzf_env (){
     # Used by citations
       export FZF_DEFAULT_OPTS="--reverse -m --ansi --no-clear \
                                --bind 'change:first' \
-                               --bind '$citations_display:execute(echo 1 > $fzf_keys)+accept' \
-                               --bind '$citations_browse:execute(echo 2 > $fzf_keys)+accept' \
-                               --bind '$citations_cite:execute(echo 3 > $fzf_keys)+accept' \
+                               --bind '$citations_show:execute(echo ":show")+accept' \
+                               --bind '$citations_browse:execute(echo ":browse")+accept' \
+                               --bind '$citations_cite:execute(echo ":cite")+accept' \
                                --bind '$selectall:select-all' \
                                --bind '$deselectall:deselect-all' \
+                               --bind '$main_yank:execute-silent($yankscript {})' \
                                --bind '$help:execute-silent(echo "citations" > $preview_help)+refresh-preview' \
                                --preview='papis-fzf preview citations {}' \
                                --preview-window='bottom,30%,wrap'"

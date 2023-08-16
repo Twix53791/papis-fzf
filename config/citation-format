@@ -1,7 +1,7 @@
 # Format :
 #   name of format | {<field1} formatting {field2} [[script]] ...
 #===========================================================================
-#    \n to print newline character
+#     \n to print newline character
 # To send rich text to clipboard:
 #  - write in the style name a special character
 #     set by the setting 'richtext' in the config file

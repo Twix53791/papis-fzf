@@ -1,6 +1,6 @@
 # Lines can be commented
-# The file is sourced by papis-fzf
-#  format: variablename=value
+# the file is sourced by papis-fzf
+# format: variablename=value
 
 # Set the terminal used to run papis-fzf
 terminal=kitty
@@ -37,6 +37,7 @@ index_fields=('title' 'author' 'year' 'publisher' 'doi' 'url' 'note' 'tags')
 fzf_fields=('title' 'author' 'year' 'publisher' 'tags' 'note')
 fzf_colors=('\033[33m' '\033[32m' '\033[34m' '\033[36m'  '\033[35m' '\033[93m')
 # doi '\033[94m'
+
 
 ############################
 ### Citation-format file ###
@@ -75,6 +76,22 @@ cite_script_color=94
 cite_preview_color=34
 
 
+############################
+###### Citations menu ######
+############################
+# Enable parsing citations from info.yaml
+# (in addition to the citations.yaml file)
+enable_info_citations=1
+
+# Set the fields displayed the citations menu
+# In citations.yaml, in order
+citations_fields=('title' 'author' 'publisher' 'year' 'type')
+citations_colors=('\033[37m' '\033[32m' '\033[34m' '\033[36m' '\033[36m')
+
+# In info.yaml
+citations_info_fields=('article-title' 'unstructured' 'author' 'series-title' 'year')
+citations_info_colors=('\033[37m' '\033[37m' '\033[32m' '\033[34m' '\033[36m')
+
 #############################
 ######## keybindings ########
 #############################
@@ -94,8 +111,9 @@ main_searchbytags=ctrl-s
 main_edit=ctrl-e
 main_browse=ctrl-b
 main_tag=ctrl-t
-main_export=ctrl-x
+main_export=alt-x
 main_citations=ctrl-c
+main_yank=ctrl-y
 main_delete=ctrl-d
 main_refresh=ctrl-r
 
@@ -114,11 +132,11 @@ add_query=alt-enter
 cite_edit=ctrl-e
 
 # Citations view
-citations_display=enter
+citations_show=enter
 citations_browse=alt-enter
 citations_cite=ctrl-c
-citations_display_cite=c
-citations_display_browse=b
+citations_show_cite=c
+citations_show_browse=b
 
 ### Display view keybindings
 key_cite=$'\0A'
@@ -140,6 +158,7 @@ key_exit_name=q
 ## add_accept and add_esc are mutually exclusive. Use one or the other
 add_edit=e
 add_manually=m
+add_nobackground=a
 #add_accept="$'\n'"
 #add_accept_name="y"
 add_esc=$'\e'
