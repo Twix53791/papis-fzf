@@ -39,7 +39,7 @@ build-indexes (){
    fi
 
    # 2) the python script recreate the entries (updated) if needed
-   python $papisfzfdir/build.py "$@"
+   python $papisfzfdir/python/build.py "$@"
 
    if [[ $? != 0 ]]; then
       echo "papis-fzf ERROR :: fail to build the index. Exit" >> $tmplog && exit

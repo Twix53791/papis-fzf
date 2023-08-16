@@ -160,6 +160,8 @@ _init (){
 
    export FZF_PAPIS_CONFIGPY=$tmpdir
    pyvars="index_fields=\|fzf_fields=\|fzf_colors="
+   pyvars="${pyvars}\|citations_fields=\|citations_info_fields="
+   pyvars="${pyvars}\|citations_colors=\|citations_info_colors="
    grep "$pyvars" $config | sed "s/(/[/g;s/)/]/g;s/' /', /g" > $tmpdir/config.py
 
    ########   Source fzf environnement   ########

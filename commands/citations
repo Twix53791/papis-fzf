@@ -2,51 +2,167 @@
 #===============================================
 # Show the citations of an entry in a fzf menu
 #===============================================
+# Dependencies:
+#  - yq
+#  - xdg-open (_citations_browse)
 
+# Take as argument the first papis-folder given ($1)
 citations (){
-   [[ $1 == "-i" ]] && cit_opt="-i" && shift
+   # Set the files
+   cfile="$1/citations.yaml"
+   ifile="$1/info.yaml"
 
-   _fzf_env citations
-   matches=$($citationsscript $cit_opt "$1" | fzf)
-   [[ -z $matches ]] && return
+   cttraw=$tmpdir/tmp-index-citations-raw
+   cttcolor=$tmpdir/tmp-index-citations-colored
+   cttiraw=$tmpdir/tmp-index-citations-info-raw
+   ctticolor=$tmpdir/tmp-index-citations-info-colored
 
-   selection=()
-   while read line; do
-      selection+=("${line##* }")
-   done <<< $matches
+   # Clear the files
+   echo -n "" > $cttraw
+   echo -n "" > $cttcolor
+   echo -n "" > $cttiraw
+   echo -n "" > $ctticolor
 
-   fzf_opt=$(< $fzf_keys)
+   # Check if the entry has citations
+   [[ -f $cfile ]] && C=1 || C=0
+   hascitations="$(yq 'has("citations")' $ifile)"
+   [[ $hascitations == "true" ]] && I=1 || I=0
 
-   if [[ $fzf_opt == 1 ]]; then
-      tput reset
-      $viewcitationsscript "$1" "${selection[@]}"
+   # Can we parse citations from info.yaml ?
+   [[ $enable_info_citations == 0 ]] && I=0
 
-      echo
-      echo -e "\033[34m actions: browse ($citations_display_browse) ; cite ($citations_display_cite)"
-      echo -e " menu back ($key_back_name)"
-      read -s -n 1 k
+   # Exit if no citations source available
+   [[ $C == 0 && $I == 0 ]] && return
 
-      case $k in
-         $citations_display_browse) _browse_citations "$1" "${selection[@]}";;
-         $citations_display_cite) _cite_citations "$1" "${selection[@]}";;
-         $key_back) return;;
-      esac
-   fi
+   # Parse citations
+   [[ $C == 1 ]] && _citations_yaml "$cfile"
+   [[ $I == 1 ]] && _info_yaml "$ifile"
+
+   # Run the fzf menu
+   _citations_fzf_menu
+
+   # Clear tput when returns
+   tput reset
 }
 
-_browse_citations (){
-   doc_folder="$1"; shift
-   urls=()
-   for id in "$@"; do
-      [[ ${id:0:1} == "#" ]] &&
-         yamlfile="$doc_folder/info.yaml" ||
-         yamlfile="$doc_folder/citations.yaml"
+_citations_fzf_menu (){
+   # Display the citations in fzf
+   # Skip the null entries (duplicates, cf. citations.py)
+   _fzf_env citations
+   matches=$(cat $cttcolor $ctticolor | grep -v "null" | sort | fzf)
+   [[ -z $matches ]] && return
 
-      url=$(yq "select(di == $id) | .url" "$yamlfile")
-      [[ -z $url ]] && url=$(yq "select(di == $id) | .doc_url" "$yamlfile")
-      [[ -z $url ]] && url=$(yq "select(di == $id) | .doi" "$yamlfile") && url="http://dx.doi.org/$url"
-      [[ -n $url ]] && urls+=("$url")
+   # Get the action and wrap entries selected in a list
+   selection=()
+   while read line; do
+      if [[ ${line:0:1} == ":" ]]; then
+         # fzf key pressed echo ':action' (cf. fzf_env)
+         action="_citations_${line:1}"
+      else
+         where=$(grep -n "$line" $cttraw $cttiraw | head -1)
+         file=${where%%:*}
+         n=${where#*:}
+         n=${n%%:*}
+         n=$(( $n - 1))
+
+         selection+=("$n:$file")
+      fi
+   done <<< $matches
+
+   $action "${selection[@]}"
+
+   # When the action is done, come back to citations list
+   _citations_fzf_menu
+}
+
+
+#####  Those two functions parse the yaml files  #####
+# For each "citation occurence" found, _add it with its 'id'
+#  (nth number)
+# The citation id will be used to browse/cite/show citation...
+
+### Run citations.py to parse the citations.yaml file
+_citations_yaml (){
+   json=$(yq -o=json -I=0 'select(document_index == "*")' "$1" | tr -s '\n' ',')
+   json=${json:0:-1}
+   echo -n "[${json}]" > $tmpdir/tmp-citations-input
+   python $papisfzfdir/python/citations.py citations
+}
+
+### Run citations.py to parse the info.yaml file
+_info_yaml (){
+   json=$(yq -o=json -I=0 ".citations" "$1")
+   echo -n "$json" > $tmpdir/tmp-citations-input
+   python $papisfzfdir/python/citations.py info
+}
+
+
+####################################
+###########   ACTIONS   ############
+####################################
+_citations_show (){
+   tput reset
+   nth=""
+
+   for entry in "$@"; do
+      # If its not the first loop iteration, print a separator
+      [[ -n $nth ]] && echo && printf %"$COLUMNS"s | tr " " "="
+
+      # Set nthline and file
+      nth="${entry%%:*}"
+      fromfile="${entry#*:}"
+
+      # Parse file
+      if [[ $fromfile == $cttraw ]]; then
+         yq -C "select(di == $nth)" $cfile
+      else
+         yq -C ".citations[$nth]" $ifile
+      fi
    done
-   echo "browse_cit\n$(printf '%s\\n' ${urls[@]})" > $pipe
-   exit
+
+   # Wait for user input
+   echo
+   echo -e "\033[34m actions: browse ($citations_display_browse) ; cite ($citations_display_cite)"
+   echo -e " menu back ($key_back_name)"
+   read -s -n 1 k
+}
+
+_citations_browse (){
+   urls=()
+
+   for entry in "$@"; do
+      # Set nthline and file
+      nth="${entry%%:*}"
+      fromfile="${entry#*:}"
+
+      # Check if the entry contains an url/doi
+      # In citations.yaml
+      if [[ $fromfile == $cttraw ]]; then
+         url=$(yq -C "select(di == $nth) | .url" $cfile)
+
+         if [[ $url == "null" ]]; then
+            url=$(yq -C "select(di == $nth) | .doi" $ifile)
+            [[ $url != "null" ]] && url="http://dx.doi.org/$url"
+         fi
+
+         [[ $url != "null" ]] && urls+=("$url")
+
+      # In info.yaml
+      else
+         url=$(yq -C ".citations[$nth] | .doi" $ifile)
+
+         if [[ $url != "null" ]]; then
+            url="http://dx.doi.org/$url"
+         else
+            url=$(yq -C ".citations[$nth] | .url" $ifile)
+         fi
+
+         [[ $url != "null" ]] && urls+=("$url")
+      fi
+   done
+
+   # Browse
+   for url in "${urls[@]}"; do
+      xdg-open "$url"
+   done
 }

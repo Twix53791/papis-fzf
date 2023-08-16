@@ -34,17 +34,26 @@ preview (){
    elif [[ $1 == "citations" ]]; then
       shift
 
-      # File must matched the one where citations_list_styles.py write its output
-      indexfile="/tmp/papis-fzf/papis-fzf-citations-preview"
+      # Files
+      cttraw=$tmpdir/tmp-index-citations-raw
+      cttcolor=$tmpdir/tmp-index-citations-colored
+      cttiraw=$tmpdir/tmp-index-citations-info-raw
+      ctticolor=$tmpdir/tmp-index-citations-info-colored
 
-      line="$1"
-      n=${@##* }
-      # Citations from info.yaml use #number indexes
-      n=${n/\#/}
-      ((n++))
-      line=$(sed "${n}q;d" $indexfile)
+      # Try to determine which line to display from which file
+      where=$(grep -n "$1" $cttraw $cttiraw | head -1)
 
-      line="${line% *}"
+      if [[ ${where%%:*} == $cttraw ]]; then
+         n=${where#*:}
+         n=${n%%:*}
+         line=$(sed "${n}q;d" $cttcolor)
+      else
+         n=${where#*:}
+         n=${n%%:*}
+         line=$(sed "${n}q;d" $ctticolor)
+      fi
+
+      # Echo the text to show
       echo -e "$line" | fold -w 95 -s
 
    # Preview in all the others fzf menus
