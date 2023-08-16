@@ -1,6 +1,6 @@
 
 # papis-fzf
-Manage papis database with fzf. Add references, search, edit, delete, browse... Can be used from qutebrowser
+Manage papis database with fzf. Add references, search, edit, delete, browse... Can be used from qutebrowser.
 Simple, fast, hackable.
 
 ### ! For now, use a fork of papis. But maybe soon papis will integrates the changes needed...
