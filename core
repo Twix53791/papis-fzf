@@ -45,6 +45,7 @@ _core_list_tags (){
 }
 
 # From a selection in fzf, build a list of papis-folders
+# ! There must be no dupplicate! build.py watch this...
 _core_get_folders (){
    while read line; do
       idxnum=$(grep -n "$line" $indexraw)

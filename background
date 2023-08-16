@@ -6,9 +6,13 @@
 ###########  Commands functions  ############
 # Edit this part to customize the actions run
 #  in the background by the commands
-# The pipe run :
-#  _background_init "{$args[@]}"
+# The pipe runs :
 #  _background_<command name> "{$args[@]}"
+# The _background_command runs if needed :
+#   _background_init
+#   $papis command
+#   _update_database
+#   _buld-indexes
 # Where "{$args[@]}" is a list of papis folders
 # build-indexes is a command
 
@@ -18,6 +22,7 @@ _background_edit (){
 }
 
 _background_delete (){
+   _background_init "$@"
    papis rm -f -a "${dflist[@]}" 2>>$tmplog
 
    _background_notification "The following entries has been deleted :"

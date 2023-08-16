@@ -192,6 +192,9 @@ _init_preview (){
    indexraw=$indexdir/index-raw
    indexcolored=$indexdir/index-colored
 
+   helpscript=$configdir/scripts/help.sh
+   [[ ! -f $helpscript ]] && helpscript=$papisfzfdir/config/scripts/help.sh
+
    preview "$@"
    exit
 }

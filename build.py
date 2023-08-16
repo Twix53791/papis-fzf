@@ -77,7 +77,10 @@ def main():
 # folder: <$HOME/papislibrary/papis-folder>
 def update_indexes(documents, writemode):
     with open(idx, writemode) as idxfile, open(idxraw, writemode) as idxrwfile, open(idxcolor, writemode) as idxclfile:
+        watch_duplicates = []
+
         for doc, folder in documents:
+
             # Special format for tags
             tags = ["tag:" + t for t in doc["tags"].split()]
 
@@ -89,24 +92,35 @@ def update_indexes(documents, writemode):
                     idxStr = idxStr + "|" + ": ".join(tags) + ":"
                 else:
                     idxStr = idxStr + "|" + str(doc[field])
-            idxStr = idxStr + "|" + folder + "\n"
+            idxStr = idxStr + "|" + folder
 
             # Index-raw string && indx-colored string (fzf menu)
             idxrawStr, idxcolorStr = [""]*2
             for i, field in enumerate(fzf_fields):
-                if field == "tags":
+                if field == "tags" and tags:
                     idxrawStr = idxrawStr + " ".join(tags) + " "
                     idxcolorStr = idxcolorStr + fzf_colors[i] + " ".join(tags) + " "
-                else:
+                elif doc[field]:
                     idxrawStr = idxrawStr + str(doc[field]) + " "
                     idxcolorStr = idxcolorStr + fzf_colors[i] + str(doc[field]) + " "
-            idxrawStr = idxrawStr.rstrip() + "\n"
-            idxcolorStr = idxcolorStr.rstrip() + "\n"
+
+            # Raw strings
+            idxrawStr = idxrawStr.rstrip()
+            idxcolorStr = idxcolorStr.rstrip()
+
+            # Avoiding duplicates
+            raw_duplicates = str(sum(s == idxrawStr for s in watch_duplicates))
+
+            watch_duplicates.append(idxrawStr)
+
+            if not raw_duplicates == "0":
+                idxrawStr = idxrawStr + " " + "#" + raw_duplicates
+                idxcolorStr = idxcolorStr + " \033[30m" + "#" + raw_duplicates
 
             #### Write the files ####
-            idxfile.write(idxStr)
-            idxrwfile.write(idxrawStr)
-            idxclfile.write(idxcolorStr)
+            idxfile.write(idxStr + "\n")
+            idxrwfile.write(idxrawStr + "\n")
+            idxclfile.write(idxcolorStr + "\n")
 
             # NOTE: update_indexes just write the entries it matched
             #  To 'update' selected entries in the database (and not all

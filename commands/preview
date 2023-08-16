@@ -7,53 +7,31 @@ preview (){
    [[ -f $preview_help ]] && help=$(< $preview_help)
    [[ -n $help ]] && echo -n "" > $preview_help
 
-   # Help messages
-   if [[ $help == "main" ]]; then
-      # Main fzf menu help
-      echo -e "\033[33menter: \033[34mcite ; \033[33m$main_show: \033[34mshow ; \033[33m$main_edit: \033[34medit ; \033[33m$main_tag: \033[34mtag ; \033[33m$main_browse: \033[34mbrowse ; \033[33m$main_export: \033[34mexport"
-      echo -e "\033[33m$main_citations: \033[34mshow citations of the document (cited_by) ; \033[33m$main_delete: \033[34mdelete"
-      echo -e "\033[33m$main_searchbytags: \033[34msearch-by-tags ; To use complex search queries, just precede your query by 'filter:' (it use the whoosh syntax)"
-      echo -e "\033[33m$selectall/$deselectall: \033[34mselect/deselect all ; \033[33m$main_refresh: \033[34mrefresh (update the entries list)"
-   elif [[ $help == "cite" ]]; then
-      # Cite
-      echo -e "\033[33m  $cite_edit: \033[34medit the citation formats"
-   elif [[ $help == "searchbytags" ]]; then
-      echo -e "\033[33m  enter: \033[34mcombine selected tags (or tags in the query if none selected) with AND operator"
-      echo -e "\033[33m  $tags_or: \033[34mcombine selected tags with OR operator"
-   elif [[ $help == "tag" ]]; then
-      # Remove tag
-      echo -e "\033[33m  $tag_remove: \033[34mremove selected tags from the reference(s)"
-      echo -e "\033[33m  $tag_query_and_add: \033[34madd the query to the tags and ADD tags ; \033[33m$tag_query_and_rm: \033[34madd the query to the tags and REMOVE tags"
-      echo -e "\033[33m  $selectall: \033[34mselect all ; \033[33m$deselectall: \033[34mdeselect all"
-   elif [[ $help == "add" ]]; then
-      # Add entry (select tags menu)
-      echo -e "\033[33m  $add_query: \033[34madd the query to the list of selected tags"
-      echo -e "\033[33m  $selectall: \033[34mselect all ; \033[33m  $deselectall: \033[34mdeselect all"
-   elif [[ $help == "citations" ]]; then
-      # Citations help
-      echo -e "\033[33m  $citations_display: \033[34mdisplay the citation reference ; \033[33m  $citations_browse: \033[34mbrowse ; \033[33m  $citations_cite: \033[34mcite"
-      echo -e "\033[33m  $selectall: \033[34mselect all ; \033[33m  $deselectall: \033[34mdeselect all"
+   # Run the help script setting the help message texts
+   if [[ -n $help ]]; then
+      $helpscript $help
+   # If there is nothing to display, exit
    elif [[ -z $@ ]]; then
       exit
 
+   # Preview in cite fzf menu
    elif [[ $1 == "cite" ]]; then
-    # Preview in _cite fzf menu
       shift
       line="$@"
       line="${line% $cite_separator *}"
       line="$line $cite_separator"
       nxtline=$(grep -A 1 "$line" $cite_file | tail -1)
-      [[ ${nxtline:0:1} == "#" ]] &&
-         nxtline="${nxtline:1}"
-         if [[ $cite_preview_color =~ ^[0-9]+$ ]]; then
-            nxtline="\033[${cite_preview_color}m${nxtline}"
-            nxtline="${nxtline//[0m/[0m\\033[${cite_preview_color}m}"
-         fi
+      [[ ${nxtline:0:1} == "#" ]] && nxtline="${nxtline:1}"
 
-         echo -e "${nxtline}"
+      if [[ $cite_preview_color =~ ^[0-9]+$ ]]; then
+         nxtline="\033[${cite_preview_color}m${nxtline}"
+         nxtline="${nxtline//[0m/[0m\\033[${cite_preview_color}m}"
+      fi
 
+      echo -e "${nxtline}"
+
+   # Preview in citations fzf menu
    elif [[ $1 == "citations" ]]; then
-    # Preview in _citations fzf menu
       shift
 
       # File must matched the one where citations_list_styles.py write its output
@@ -61,15 +39,16 @@ preview (){
 
       line="$1"
       n=${@##* }
+      # Citations from info.yaml use #number indexes
+      n=${n/\#/}
       ((n++))
       line=$(sed "${n}q;d" $indexfile)
 
       line="${line% *}"
       echo -e "$line" | fold -w 95 -s
 
+   # Preview in all the others fzf menus
    else
-    # Preview in all the others fzf menus
-
       # Get the index nth
       line=$(sed 's/ *$//' <<< $@)
       n=$(grep -n "$line" $indexraw)

@@ -26,7 +26,7 @@ _pipe (){
          done < <(echo -e "$pipein" | tail -n +2)
 
          # Run the function
-         [[ -n ${args[@]} ]] && _background_init "${args[@]}"
+#         [[ -n ${args[@]} ]] && _background_init "${args[@]}"
          $func "${args[@]}" 2>/dev/null
 
          # Debug log
