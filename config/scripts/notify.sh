@@ -2,4 +2,10 @@
 
 msg=$1; shift
 
-notify-send -t 2000 "$msg" "$1" 2> /dev/null
+[[ $1 == "error" ]] && error=("-u" "critical") && shift
+
+for title in "$@"; do
+   entries+="$title\n"
+done
+
+notify-send "${error[@]}" -t 2000 "$msg" "$entries" 2> /dev/null

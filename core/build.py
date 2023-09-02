@@ -1,6 +1,7 @@
 # This script build the indexes files
 # index, index-raw, and index-colored
 # By default in ~/.cache/papis-fzf
+# Run by buildindexes.pm
 
 import os
 import sys
@@ -8,22 +9,19 @@ import papis.document
 import papis.database.whoosh
 
 
-# Set files location
-try:
-    indexdir = os.environ["FZF_PAPIS_INDEXDIR"]
-    configpy = os.environ["FZF_PAPIS_CONFIGPY"]
-except:
-    indexdir = os.path.expanduser("~") + "/.cache/papis-fzf"
-    configpy = "/tmp/papis-fzf"
+# Gets working directories
+indexdir = sys.argv[1]
+configpy = sys.argv[2]
 
-# Set the filenames
+# Sets file locations
 idx = indexdir + "/index"
 idxraw = indexdir + "/index-raw"
 idxcolor = indexdir + "/index-colored"
 
-# Import config variables from /tmp/papis-fzf/config.py
-sys.path.append(os.path.expanduser(configpy))
-from config import *
+## Gets config
+index_fields = eval(sys.argv[3])
+fzf_fields = eval(sys.argv[4])
+fzf_colors = eval(sys.argv[5])
 
 # Open the class Database, get the whoosh index
 db = papis.database.whoosh.Database()
@@ -32,16 +30,16 @@ ix = db.get_index()
 
 def main():
     # If a list of papis-folder is given, update them
-    papisFolders = sys.argv[1:]
+    papisFolders = sys.argv[6:]
 
     # If not, rebuild the indexes (writemode to write)
     writemode = "a" if papisFolders else "w"
 
     # Get all or matching arguments documents from database
     # OR get the documents from --doc-folder (papisFolders)
+    # documents: [(Document object, papis-folder), ...]
     with ix.searcher() as searcher:
         all_docs = searcher.documents()
-        # documents: [(Document object, papis-folder), ...]
         documents = []
 
         for d in all_docs:
@@ -53,24 +51,6 @@ def main():
         if documents:
             update_indexes(documents, writemode)
 
-# NOTE: this way using papis.document.from_folder(folder) is the safest way
-# It recovers the true yaml fields even if the database doesn't get updated yet
-# It is only 10% slower than the alternative way below
-
-# OTHER POSSIBLE WAY
-#from whoosh.qparser import QueryParser
-
-#    if papisFolders:
-#        with ix.searcher() as searcher:
-#            results = []
-#            for folder in papisFolders:
-#                query = QueryParser("papis-folder", ix.schema).parse('"' + folder + '"')
-#                entry = searcher.search(query)
-#                if entry:
-#                    results.append(entry[0])
-#            if results:
-#                update_indexes(results, "a")
-
 
 # documents: list of tuples : [(doc, folder), ...].
 #  doc: a <class 'papis.document.Document'> object containing the fields values
@@ -80,16 +60,21 @@ def update_indexes(documents, writemode):
         watch_duplicates = []
 
         for doc, folder in documents:
-
             # Special format for tags
-            tags = ["tag:" + t for t in doc["tags"].split()]
+            try:
+                tags = [t for t in doc["tags"].split()]
+            except Exception:
+                tags = ""
 
             # Index string (main index file)
             for i, field in enumerate(index_fields):
                 if i == 0:
                     idxStr = str(doc[field])
                 elif field == "tags":
-                    idxStr = idxStr + "|" + ": ".join(tags) + ":"
+                    if tags:
+                        idxStr = idxStr + "|TAGS:" + " ".join(tags)
+                    else:
+                        idxStr = idxStr + "|"
                 else:
                     idxStr = idxStr + "|" + str(doc[field])
             idxStr = idxStr + "|" + folder

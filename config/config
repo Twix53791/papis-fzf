@@ -19,10 +19,22 @@ edit_cite_opts="-Y python"
 # Enable notifications
 enable_notifications=1
 
+# --no-clear fzf option
+no_clear=0
+
+# Papis library (used by add.pm)
+papis_library=/home/archx/Documents/papers
+
+# Tags : add automatically the last added document tags
+tags_auto=1
+
+# Clear tags auto
+tags_auto_clear=0
 
 ############################
 ### Indexes of fzf menus ###
 ############################
+# python lists
 
 # Set the fields indexed in the main index file
 # ! Those fields must exist in the whoosh database
@@ -30,14 +42,34 @@ enable_notifications=1
 # ! Those fields and only thos will be "searchables"
 #    with the filter: command
 # The variable format is a python list, as it is read by build.py
-index_fields=('title' 'author' 'year' 'publisher' 'doi' 'url' 'note' 'tags')
+#index_fields=('title' 'author' 'year' 'publisher' 'doi' 'url' 'note' 'tags')
+index_fields=['title', 'author', 'year', 'publisher', 'doi', 'url', 'note', 'tags']
 
 # Fields DISPLAYED in the fzf menus
 # ! Must has to be indexed in index_fields
-fzf_fields=('title' 'author' 'year' 'publisher' 'tags' 'note')
-fzf_colors=('\033[33m' '\033[32m' '\033[34m' '\033[36m'  '\033[35m' '\033[93m')
+#fzf_fields=('title', 'author', 'year', 'publisher', 'tags', 'note')
+#fzf_colors=('\033[33m', '\033[32m', '\033[34m', '\033[36m'  '\033[35m', '\033[93m')
+fzf_fields=['title', 'author', 'year', 'publisher', 'tags', 'note']
+fzf_colors=['\033[33m', '\033[32m', '\033[34m', '\033[36m', '\033[35m', '\033[93m']
+#fzf_colors=('\033[33m' '\033[32m' '\033[34m' '\033[36m'  '\033[35m' '\033[93m')
 # doi '\033[94m'
 
+############################
+####### Fzf preview ########
+############################
+preview_aliases=('93m'=>'93m\n')
+
+preview_wrap=4
+
+help_text=33m
+help_keys_color=34m
+
+############################
+######## Show view #########
+############################
+show_fields=('title', 'author', 'abstract', 'journal', 'volume', 'issue',  'month', 'year', 'pages', 'publisher', 'type', 'doi', 'url', 'files', 'tags')
+show_colors=('key', '36m', 'value', '32m', 'title', '33m', 'author', '92m', 'tags', '95m')
+show_wrap=("  ", "   ", 3)
 
 ############################
 ### Citation-format file ###
@@ -101,32 +133,32 @@ citations_info_colors=('\033[37m' '\033[37m' '\033[32m' '\033[34m' '\033[36m')
 #  fzf will crash
 
 # Generals
-selectall=ctrl-a
-deselectall=alt-a
-help=ctrl-h
+global_keys=('selectall'=>'ctrl-a',
+             'deselectall'=>'alt-a',
+             'help'=>'ctrl-h',
+             'yank'=>'ctrl-y',
+             'exit'=>'alt-q')
 
 # Main menu (list references from list_all or search_by_tags)
-main_show=alt-enter
-main_searchbytags=ctrl-s
-main_edit=ctrl-e
-main_browse=ctrl-b
-main_tag=ctrl-t
-main_export=alt-x
-main_citations=ctrl-c
-main_yank=ctrl-y
-main_delete=ctrl-d
-main_refresh=ctrl-r
+main_keys=('cite'=>'enter',
+           'show'=>'alt-enter',
+           'searchbytags'=>'ctrl-s',
+           'edit'=>'ctrl-e',
+           'browse'=>'ctrl-b',
+           'tag'=>'ctrl-t',
+           'export'=>'ctrl-x',
+           'citations'=>'ctrl-c',
+           'delete'=>'ctrl-d',
+           'buildindexes'=>'ctrl-i')
 
 # List_tags (search_by_tags menu)
-tags_or=alt-enter
+searchbytags_keys=('or'=>'alt-enter', "accept"=>'enter')
 
 # Tag entry (add/remove tags on references)
-tag_remove=alt-enter
-tag_query_and_add=ctrl-q
-tag_query_and_rm=alt-q
+tag_keys=('accept'    => 'enter',
+          'remove'    => 'alt-enter',
+          'query_add' => 'ctrl-q')
 
-# Add (select tags menu before adding en entry)
-add_query=alt-enter
 
 # Cite (choose between citation formats)
 cite_edit=ctrl-e
@@ -135,27 +167,37 @@ cite_edit=ctrl-e
 citations_show=enter
 citations_browse=alt-enter
 citations_cite=ctrl-c
-citations_show_cite=c
+citations_edit=ctrl-e
 citations_show_browse=b
+citations_show_cite=c
+citations_show_edit=e
 
 ### Display view keybindings
-key_cite=$'\0A'
-key_cite_name=enter
-key_edit=e
-key_tag=t
-key_citations=c
-key_browse=b
-key_export=x
-key_delete=d
-key_back_name=backspace
-key_back=$'\177'
-key_exit=q
-key_exit_name=q
+# 10 binds ENTER
+show_keys=('cite'=>'10', 'edit'=>'e', 'tag'=>'t', 'export'=>'x', 'browse'=>'b', 'delete'=>'d', 'exit'=>'q', 'citations'=>'c')
+show_keys_color=34m
+show_keys_aliases=('cite'=>'enter')
 
 # OR only one key for exit/back + default_anyother_key: exit or return
 
 ### Add confirm view keybindings
 ## add_accept and add_esc are mutually exclusive. Use one or the other
+# 127 = ord backspace
+add_keys=('e' => 'edit:edit the yaml file before saving',
+          'm' => 'create:create a new entry manually',
+          'a' => 'manual:manual control of the adding process',
+          '127:backspace' => 'back:back to tag selection',
+          'c' => 'clear:clear tags',
+          '27:esc' => 'exit')
+
+# Add (select tags menu before adding en entry)
+add_fzf_keys=('query'=>'alt-enter')
+
+# Header, binding: labels, binding: key, url, tags
+add_menu_colors=('91m', '32m', '94m', '33m', '35m')
+add_wrap=("  ", "  ", 3)
+
+# TO DEL:
 add_edit=e
 add_manually=m
 add_nobackground=a
@@ -165,3 +207,4 @@ add_esc=$'\e'
 add_esc_name=ESC
 add_back=$'\177'
 add_back_name=backspace
+

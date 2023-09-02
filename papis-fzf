@@ -1,247 +1,109 @@
-#!/bin/bash
-# MADE by Twix :: https://github.com/Twix53791
-#                 twixgithub@protonmail.com
-#=============================================
-# DEPENDENCIES
-#  - fzf
-#  - papis
-#  - whoosh (see papis documentation to install it)
+#!/usr/bin/bash
+# MADE by Twix ::
+#    https://github.com/Twix53791
+#    twixgithub@protonmail.com
+#========================================
+# Handles papis-fzf multiprocesses safely
 #
-##############################################
-#######   Run the commands/fzf menu   ########
-##############################################
+# Communicates with papis-fzf.pl through
+#  named pipes (fifo).
+# This wrapper only :
+#  - set working directories
+#  - run fzf-papis   when papis-fzf.pl asks
+#  - run nano        when papis-fzf.pl asks
+#  - trap exit
+#
+# papis-fzf.pl:
+#  - handles all the logic
+#  - handles command background processes
+#  - displays everything that is just text to stdout
+#  - exit running the exit::command
+#     This script will handle the command, to close
+#     safely all the processes (trap '_exit' EXIT)
+#========================================
 
-### Init the program
-_main (){
-   [[ $1 == "preview" ]] && shift && _init_preview "$@"
-   [[ $1 == "--debug" || $1 == "-d" ]] && debug=1 && shift
+## Sets working directories
 
-   # Set variables, sources files, config...
-   _init
+papisfzfdir=$HOME/.papis-perl
 
-   trap '_exit' EXIT
+indexdir=$HOME/.cache/papis-fzf
+DIRECTORIES+=("$indexdir")
+[[ ! -d $indexdir ]] && mkdir $indexdir
 
-   # Init the pipe running background tasks
-   pipe="$tmpdir/papis-fzf-pipe-$$"
-   _pipe "$pipe" &
+configdir=$HOME/.config/papis-fzf
+DIRECTORIES+=("$configdir")
 
-   # By security, make sure the pipe has been created before running any command
-   while [[ ! -p $pipe ]]; do
-      sleep .05
-   done
+tmpdir=/tmp/papis-fzf
+DIRECTORIES+=("$tmpdir")
+[[ ! -d $tmpdir ]] && mkdir $tmpdir
 
-   # If a command is specified, run it
-   if [[ -n $1 && ${1:0:1} != "_" ]]; then
-      _fzf_env $1
-      "$@"
-      exit
+#tmplog=$tmpdir/papis-fzf.log
 
+FIFO_TO_PL="$tmpdir/fifo-sh-to-pl-$$"
+FIFO_TO_SH="$tmpdir/fifo-pl-to-sh-$$"
+
+[[ ! -p $FIFO_TO_PL ]] && mkfifo $FIFO_TO_PL
+[[ ! -p $FIFO_TO_SH ]] && mkfifo $FIFO_TO_SH
+
+
+## Traps exit (safe exit). Trap many signals, included INT (ctrl-c)
+trap '_exit' EXIT
+
+_exit () {
+   pkill fzf-papis # ! important ! fix stty bug if test killed before fzf
+   kill $pid 2>/dev/null
+   rm $FIFO_TO_PL $FIFO_TO_SH
+}
+
+## Debug value
+[[ $@ == *"-d"* || $@ == *"--debug"* ]] && debug=1
+[[ $debug == 1 && $@ == *2* ]] && debug=2          # gross, but enough
+
+## Runs papis-fzf.pl
+
+$papisfzfdir/papis-fzf.pl $FIFO_TO_PL $FIFO_TO_SH "${DIRECTORIES[@]}" "$@" &
+pid=$!  # get the pid of the papis-fzf.pl process
+
+
+## Handles requests from papis-fzf.pl via FIFO_TO_SH
+
+output=0
+
+while :; do
+
+   # Reads the fifo
+   #  output is null only if the fzf-papis process is interrupted
+   #  If null, it will exec the PREVIOUS $input command
+   #     = it 'refresh' the fzf-papis menu
+   [[ -n $output ]] && input=$(cat $FIFO_TO_SH)
+
+   [[ $input == *":--exit--"* ]] && exit        # from commands::exit
+
+   # Debug
+   [[ $debug == 2 ]] && echo -e "====\npapis-fzf DEBUG :: $FIFO_TO_SH received :" && echo -e "$input\e[0m"
+
+   if [[ $input =~ ^:edit ]]; then
+      input="${input:6}"         # removes ':edit ' key from the string
+      eval $input                # :edit command in papis-fzf.pl
+      output=$?                  # 0 OR 1
+   elif [[ $input =~ ^:read ]]; then
+      read -s -r -N1 output
    else
-      # The main loop
-      _fzf_main
-   fi
-}
-
-### The main fzf menu (list all the references of the database from $indexcolored)
-_fzf_main (){
-   # Set fzf env
-   _fzf_env main
-
-   # Display fzf menu
-   if [[ -n $@ ]]; then
-      fzfoutput=$(cat $indextmp | sort | fzf-papis)
-   else
-      fzfoutput=$(cat $indexcolored | sort | fzf-papis)
+      output=$(eval $input)      # fzf-papis
+                                 # Output = fzf-papis selection OR null is interrupted
+                                 # The output is a simple string, each fzf entries separated
+                                 #  by a new line.
    fi
 
-   # Parse the ouput
-   # The $cmd is printed by fzf main menu key bindings
-   # To discriminate between a cmd and a query (fzf prompt)
-   #  the cmd must begin by '!'
-   cmd="$(head -1 <<< $fzfoutput)"
-   if [[ ${cmd:0:1} == '!' ]]; then
-      cmd="${cmd:1}"
-      query="$(head -2 <<< $fzfoutput | tail -1)"
-      selection="$(tail -n +3 <<< $fzfoutput)"
-   else
-      query="$cmd"
-      selection="$(tail -n +2 <<< $fzfoutput)"
+   # Sends the output to papis-fzf.pl.
+   # NOTE: the '--' indicates to io::fifo_in the end of the output
+   if [[ -n $output ]]; then
+      echo -en "$output\n--\n" > $FIFO_TO_PL
+      [[ $debug == 2 ]] && echo -e "====\npapis-fzf DEBUG :: output sent to $FIFO_TO_PL :" && echo "$output"
    fi
 
-   # Execute the commands
-   if [[ $cmd == ":refresh" ]]; then
-      build-indexes --quiet --background
-      _fzf_main
-   elif [[ $cmd == ":exit" ]]; then
-      [[ -z $@ ]] && exit || return
-   elif [[ $cmd == ":build-indexes" ]]; then
-      build-indexes
-   elif [[ $cmd == ":search-by-tags" ]]; then
-      if search-by-tags frommain; then
-         _fzf_main indextmp
-      fi
-   elif [[ $cmd =~ ^filter: || $cmd =~ ^:filter ]]; then
-      filter "$query"
-   elif [[ ${cmd:0:1} == ":" ]]; then
-      ${cmd:1} $(_core_get_folders "$selection")
+   # Goto next loop: it will wait for the fifo input.
+   # In practical terms, it will be instantaneous, as papis-fzf.pl
+   #  sends back an instruction straightaway.
 
-      if [[ -n $HIDE_ON_EXIT ]]; then
-         [[ $cmd == ":browse" || $cmd == ":cite" ]] &&
-         exit
-      fi
-   fi
-
-   _fzf_main
-}
-
-
-##############################################
-##########   Init/exit functions   ###########
-##############################################
-
-# Init the program. Set the configuration/env. Takes no argument
-_init (){
-   ########  Set working directories  ##########
-   papisfzfdir=$HOME/.papis-fzf
-
-   indexdir=$HOME/.cache/papis-fzf
-   export FZF_PAPIS_INDEXDIR=$indexdir # export for python scripts
-   [[ ! -d $indexdir ]] && mkdir $indexdir && echo "papis-fzf :: ~/.cache/papis-fzf created"
-
-   configdir=$HOME/.config/papis-fzf
-   [[ ! -d $configdir ]] && mkdir $configdir && echo "papis-fzf :: ~/.config/papis-fzf created"
-   config=$configdir/config
-
-   tmpdir=/tmp/papis-fzf
-   [[ ! -d $tmpdir ]] && mkdir $tmpdir
-
-   tmplog=$tmpdir/papis-fzf.log
-
-   ############   Import commands   ############
-   for file in $(ls $papisfzfdir/commands); do
-      source $papisfzfdir/commands/$file
-   done
-
-   # New commands created by users
-   if [[ -d $configdir/commands ]]; then
-      for file in $(ls $configdir/commands); do
-         source $configdir/commands/$file
-      done
-   fi
-
-   #########   Import core functions   #########
-   source $papisfzfdir/core
-   source $papisfzfdir/pipe
-   source $papisfzfdir/background
-
-   #############  Import scripts  ##############
-
-   for file in $(ls $configdir/scripts); do
-      varname="${file%.*}script"
-      declare -g $varname="$configdir/scripts/$file"
-   done
-
-   # Backup
-   for file in $(ls $papisfzfdir/config/scripts); do
-      varname="${file%.*}script"
-      [[ -z ${!varname} ]] && declare -g $varname="$papisfzfdir/config/scripts/$file"
-   done
-
-   ############     Source config     ###########
-   source $configdir/config 2>/dev/null
-   [[ $? != 0 ]] && source $papisfzfdir/config/config
-
-   ############  Set some variables  ############
-   [[ -z $editor ]] && editor=$EDITOR
-   preview_help=$tmpdir/fzfpreview_help
-   indextmp=$tmpdir/index-tmp
-
-   ###########  Create python config  ###########
-
-   export FZF_PAPIS_CONFIGPY=$tmpdir
-   pyvars="index_fields=\|fzf_fields=\|fzf_colors="
-   pyvars="${pyvars}\|citations_fields=\|citations_info_fields="
-   pyvars="${pyvars}\|citations_colors=\|citations_info_colors="
-   grep "$pyvars" $config | sed "s/(/[/g;s/)/]/g;s/' /', /g" > $tmpdir/config.py
-
-   ########   Source fzf environnement   ########
-   source $configdir/fzf-env 2>/dev/null
-   [[ $? != 0 ]] && source $papisfzfdir/config/fzf-env
-
-   #######   Build database if not found ########
-   index=$indexdir/index
-   indexraw=$indexdir/index-raw
-   indexcolored=$indexdir/index-colored
-
-   if [[ ! -f $index ]]; then
-      build-indexes
-   fi
-
-}
-
-_init_preview (){
-   papisfzfdir=$HOME/.papis-fzf
-   source $papisfzfdir/commands/preview
-
-   tmpdir=/tmp/papis-fzf
-   preview_help=$tmpdir/fzfpreview_help
-
-   configdir=$HOME/.config/papis-fzf
-   source $configdir/config 2>/dev/null
-   [[ $? != 0 ]] && source $papisfzfdir/config/config
-
-   indexdir=$HOME/.cache/papis-fzf
-   indexraw=$indexdir/index-raw
-   indexcolored=$indexdir/index-colored
-
-   helpscript=$configdir/scripts/help.sh
-   [[ ! -f $helpscript ]] && helpscript=$papisfzfdir/config/scripts/help.sh
-
-   preview "$@"
-   exit
-}
-
-
-# Close the pipe. Clean the terminal (needed with the --no-clear option in fzf-env)
-_exit (){
-   echo "exit" > $pipe
-   rm $pipe
-   tput rmcup
-}
-
-#######################
-# Run the main function
-_main "$@"
-
-
-### Script structure:
-# main
-#  |__ terminal -e papis-fzf commands
-#        |__ add
-#        |    |__ _fzf_list_tags
-#        |        papis add with tags from _fzf_list_tags
-#        |
-#        |__ list/search_by_tags
-#              |__ papis-fzf.py (list/search whoosh database)
-#                   entryformat.py (can be edited by users)
-#                   ${selection[@]} (list of line numbers = index nth)
-#                    |__ _action_on_selection <------------------------------<
-#                          |__ display (_display_view) [alt-enter]             |-----<
-#                          |     |__ terminal -e papis-fzf commands display   |      |
-#                          |     _sub_selection                               |      |
-#                          |        |__ to _action_on_selection_______________^      |
-#                          |__ cite [enter]                                          |
-#                          |     |__ $editor display $cite_file
-#                          |          execute cite script (can be edited by users)   |
-#                          |__ edit [ctrl-e]
-#                          |     |__ $editor files                                   |
-#                          |__ tag (add/remove tags) [ctrl-t]
-#                          |    |__ _tag                                             |
-#                          |         fzf_list_tags
-#                          |           |__ _add_tags
-#                          |           |__ _remove_tags                              |
-#                          |__ browse (open in browser) [ctrl-b]
-#                          |    exec papis browse ...                                |
-#                          |__ delete [ctrl-d]                                       ^
-#                                |__ display ________________________________________|
-#                                    terminal -e papis-fzf commands display
+done
