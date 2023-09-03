@@ -25,6 +25,7 @@ use commands::show;
 use commands::add;
 use commands::buildindexes;
 use commands::browse;
+use commands::cite;
 use commands::delete;
 use commands::edit;
 use commands::exit;
