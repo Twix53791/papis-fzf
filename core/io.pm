@@ -27,8 +27,14 @@ sub fifo_out {
 =cut
     my ($fifo, $cmd) = @_;
     open my $FIFO, ">", $fifo     or die "io.pm :: Can't communicate to papis-fzf via $fifo: $!";
+        flock $FIFO, 2;
         print $FIFO $cmd;
     close $FIFO                   or die "io.pm :: Can't close fifo $fifo: $!";
+
+    # ! Avoids than two very close consecutive calls of this sub
+    #  try to write the fifo at the same time. This (with flock)
+    #  will let the bash script papis-fzf to read the fifo one input by one
+    system("sleep 0.05");
 }
 
 
