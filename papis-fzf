@@ -77,10 +77,11 @@ while :; do
    #     = it 'refresh' the fzf-papis menu
    [[ -n $output ]] && input=$(cat $FIFO_TO_SH)
 
-   [[ $input == *":--exit--"* ]] && exit        # from commands::exit
+   [[ $debug == 2 ]] &&
+            echo -e "====\npapis-fzf DEBUG :: $FIFO_TO_SH received :" &&
+            echo -e "$input\e[0m"
 
-   # Debug
-   [[ $debug == 2 ]] && echo -e "====\npapis-fzf DEBUG :: $FIFO_TO_SH received :" && echo -e "$input\e[0m"
+   [[ $input == *":--exit--"* ]] && exit        # from commands::exit
 
    if [[ $input =~ ^:edit ]]; then
       input="${input:6}"         # removes ':edit ' key from the string
@@ -88,6 +89,9 @@ while :; do
       output=$?                  # 0 OR 1
    elif [[ $input =~ ^:read ]]; then
       read -s -r -N1 output
+   elif [[ $input =~ ^:print ]]; then
+      echo "$input" | tail -n +2 2>/dev/null
+      exit
    else
       output=$(eval $input)      # fzf-papis
                                  # Output = fzf-papis selection OR null is interrupted
@@ -105,5 +109,5 @@ while :; do
    # Goto next loop: it will wait for the fifo input.
    # In practical terms, it will be instantaneous, as papis-fzf.pl
    #  sends back an instruction straightaway.
-
+   sleep .1
 done

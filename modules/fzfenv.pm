@@ -20,18 +20,18 @@ sub set_options {
     open my $h, ">", $helpfile;
         print $h 0;
 
-    my   @fzfoptions = qw(fzf-papis --reverse -m --ansi);
-    push @fzfoptions, "--print-query" if ($mode ne "searchbytags");
+#    my   @fzfoptions = qw(fzf-papis --reverse -m --ansi);
+#    push @fzfoptions, "--print-query" if ($mode ne "searchbytags");
 
 #    my $noclear = "--no-clear" if (!$debug and $config->{no_clear});
 #    push @fzfoptions, $noclear if ($noclear);
 
     my @previewopts = ($previewscript, $realbin, $configdir, $cachedir, $logfile, $helpfile);
 
-    my ($bindings, @preview) = &$mode($context, $config, $helpfile, @previewopts);
+    my @fzfoptions = &$mode($context, $config, $helpfile, @previewopts);
 
-    push @fzfoptions, "--bind", $bindings;
-    push @fzfoptions, @preview if (@preview);
+#    push @fzfoptions, "--bind", $bindings;
+#    push @fzfoptions, @preview if (@preview);
 
     print "====\npapis-fzf :: DEBUG fzfenv.pm fzfoptions : @fzfoptions\n\n" if ($debug == 2);
 
@@ -48,11 +48,14 @@ sub set_options {
 =cut
 
 sub main {
+# main menu (papis-fzf.pl)
     my ($context, $config, $helpfile) = splice @_, 0, 3;
 
-    my %key      = (eval $config->{global_keys}, eval $config->{main_keys});
+    my @fzfoptions = qw(fzf-papis --reverse -m --ansi --print-query --bind);
 
-    my $bindings =
+    my %key        = (eval $config->{global_keys}, eval $config->{main_keys});
+
+    my $bindings   =
         "'change:first,"      .
         "$key{cite}:"         .  "execute(echo :cite)+accept," .
         "$key{searchbytags}:" .  "execute(echo :searchbytags)+accept," .
@@ -71,17 +74,24 @@ sub main {
         "$key{help}:"         .  "execute-silent(echo 1 > $helpfile)+refresh-preview," .
         "esc:"                .  "execute(echo :exit)+abort'";
 
+    push @fzfoptions, $bindings;
+
     my @previewopts = @_;
         push @previewopts, "main";
 
     my @preview = ("--preview", "'perl @previewopts {}'",
                    "--preview-window", "bottom,30%,wrap");
 
-    return $bindings, @preview
+    push @fzfoptions, @preview;
+
+    return @fzfoptions
 }
 
 sub searchbytags {
+# from searchbytags.pm
     my ($context, $config, $helpfile) = splice @_, 0, 3;
+
+    my @fzfoptions = qw(fzf-papis --reverse -m --bind);
 
     my %key      = (eval $config->{global_keys}, eval $config->{searchbytags_keys});
 
@@ -94,17 +104,24 @@ sub searchbytags {
         "$key{help}:"        . "execute-silent(echo 1 > $helpfile)+refresh-preview," .
         "esc:"               . "execute(echo ':exit')+abort'";
 
+    push @fzfoptions, $bindings;
+
     my @previewopts = @_;
         push @previewopts, "searchbytags";
 
     my @preview = ("--preview", "'perl @previewopts {}'",
                    "--preview-window", "bottom,8%,wrap,border-none");
 
-    return $bindings, @preview
+    push @fzfoptions, @preview;
+
+    return @fzfoptions
 }
 
 sub tag {
+# from tag.pm
     my ($context, $config, $helpfile) = splice @_, 0, 3;
+
+    my @fzfoptions = qw(fzf-papis --reverse -m --print-query --bind);
 
     my %key      = (eval $config->{global_keys}, eval $config->{tag_keys});
 
@@ -119,28 +136,37 @@ sub tag {
         "$key{help}:"        . "execute-silent(echo 1 > $helpfile)+refresh-preview," .
         "esc:"               . "execute(echo :exit)+abort'";
 
+    push @fzfoptions, $bindings;
+
     my @previewopts = @_;
         push @previewopts, "tag";
 
     my @preview = ("--preview", "'perl @previewopts {}'",
                    "--preview-window", "bottom,8%,wrap,border-none");
 
-    return $bindings, @preview
+    push @fzfoptions, @preview;
+
+    return @fzfoptions
 }
 
 sub add {
+# from add.pm
     my ($context, $config, $helpfile) = splice @_, 0, 3;
+
+    my @fzfoptions = qw(fzf-papis --reverse -m --print-query --bind);
 
     my %key      = (eval $config->{global_keys}, eval $config->{add_fzf_keys});
 
     my $bindings =
-        "change:first,"      .
+        "'change:first,"      .
         "$key{query}:"       .  "execute(echo ':query')+accept," .
 
         "$key{selectall}:"   .  "select-all," .
         "$key{deselectall}:" .  "deselect-all," .
         "$key{help}:"        .  "execute-silent(echo 1 > $helpfile)+refresh-preview," .
-        "esc:"               .  "abort";
+        "esc:"               .  "abort'";
+
+    push @fzfoptions, $bindings;
 
     my @previewopts = @_;
         push @previewopts, "add";
@@ -148,7 +174,54 @@ sub add {
     my @preview = ("--preview", "'perl @previewopts {}'",
                    "--preview-window", "bottom,8%,wrap,border-none");
 
-    return $bindings, @preview
+    push @fzfoptions, @preview;
+
+    return @fzfoptions
+}
+
+
+sub cite {
+# from cite.pm
+    my ($context, $config, $helpfile) = splice @_, 0, 3;
+
+    my @fzfoptions = qw(fzf-papis --reverse +m --ansi --no-clear --bind);
+
+    my %key        = (eval $config->{global_keys}, eval $config->{cite_fzf_keys});
+
+    my $bindings   =
+        "'change:first,"      .
+        "$key{edit}:"       .  "execute(echo :edit)+abort," .
+
+        "$key{help}:"        .  "execute-silent(echo 1 > $helpfile)+refresh-preview," .
+        "esc:"               . "execute(echo :exit)+abort'";
+
+    push @fzfoptions, $bindings;
+
+    my @previewopts = @_;
+        push @previewopts, "cite";
+
+    my @preview = ("--preview", "'perl @previewopts {}'",
+                   "--preview-window", "bottom,7%,wrap,border-none");
+
+    push @fzfoptions, @preview;
+
+    return @fzfoptions
+}
+
+sub select {
+# from select.pm
+    my ($context, $config, $helpfile) = splice @_, 0, 3;
+
+    my @fzfoptions = qw(fzf-papis --reverse +m --ansi --bind);
+
+    my %key        = (eval $config->{global_keys}, eval $config->{cite_fzf_keys});
+
+    my $bindings   =
+        "'change:first," . "esc:execute(echo :exit)+abort'";
+
+    push @fzfoptions, $bindings;
+
+    return @fzfoptions
 }
 
 

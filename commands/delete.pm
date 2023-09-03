@@ -27,8 +27,8 @@ sub delete {
     my $tw = `tput cols`;                         # gets terminal width
 
     print "\n" . "\033[31m" . "=" x $tw;          # prints line separator
-    print "Do you really want to delete the currently listed entries ?\n" .
-          "yY/nN ?\n\033[0m";
+    print "  Do you really want to delete the currently listed entries ?\n" .
+          "  yY/nN ?\n\n\033[0m";
 
     # Wait & read user input
     io::fifo_out($context->{fifo_out}, ":read");
@@ -59,7 +59,7 @@ sub delete {
 
     } else {
         # Operation cancelled if any other key than y/Y is pressed
-        print "\033[94m" . "Operation cancelled. Exit.";
+        print "\033[94m" . "  Operation cancelled. Exit.\n\n";
         system("sleep 0.3");
     }
 

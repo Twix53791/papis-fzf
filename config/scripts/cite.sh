@@ -11,10 +11,6 @@ tocite="$2"
 if [[ $mode == "rich" ]]; then
    tocite="${tocite}"
    cat "$tocite" | pandoc -f markdown+smart | xclip -t text/html -selection clipboard
-   sleep .2
-   xte 'keydown Control_L' 'key v' 'keyup Control_L'
 else
    cat "$tocite" | xclip -selection clipboard
-   sleep .2
-   xte 'keydown Control_L' 'key v' 'keyup Control_L'
 fi

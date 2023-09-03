@@ -9,7 +9,7 @@ package exit;
 
 sub exit {
     my $context = shift;
-    my $cmd = ":--exit--";
+    my $cmd = "\n:--exit--\n";
     io::fifo_out($context->{fifo_out}, $cmd);
 }
 

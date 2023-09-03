@@ -21,19 +21,20 @@ use core::config;
 use core::context;
 use core::io;
 use core::tags;
-use commands::show;
-use commands::add;
-use commands::buildindexes;
-use commands::browse;
-use commands::cite;
-use commands::delete;
-use commands::edit;
-use commands::exit;
-use commands::export;
-use commands::filter;
-use commands::readkey;
-use commands::searchbytags;
-use commands::tag;
+#use commands::show;
+#use commands::add;
+#use commands::buildindexes;
+#use commands::browse;
+#use commands::cite;
+#use commands::delete;
+#use commands::edit;
+#use commands::exit;
+#use commands::export;
+#use commands::filter;
+#use commands::readkey;
+#use commands::searchbytags;
+#use commands::select;
+#use commands::tag;
 
 =Init =====================
   Sets directory locations
@@ -87,6 +88,7 @@ foreach (@ARGV) {
         if ($_ eq "add" or
             $_ eq "searchbytags" or
             $_ eq "buildindexes" or
+            $_ eq "select" or
             $_ eq "readkey")
         {
             $CMD = $_;
@@ -189,22 +191,25 @@ foreach (@modules) {
 }
 
 
-=User commands ===============================
-  Loads user commands (~ plugins) dynamically.
-==============================================
+=Import commands ===============================
+  Check first user commands.
+  Import after the built-in commands not already
+   imported from user config.
+================================================
 =cut
+print "====\npapis-fzf :: DEBUG commands loaded :\n\n" if ($DEBUG);
+my @importedcmds;
+
 if (-d $USERCMD) {
-    print "====\npapis-fzf :: DEBUG user commands loaded :\n\n" if ($DEBUG);
+    my @usercmds = glob( $USERCMD . '/*' );
 
-    # Source modules directory
-    my @commands = glob( $USERCMD . '/*' );
-
-    foreach (@commands) {
-        # The usercmd is loaded from userconfig/commands
-        #  if available.
+    foreach (@usercmds) {
+        my $name = $_ =~ s/.*\///r;
+        push @importedcmds, $name;
 
         # Loads module. Debug messages if successes/fails
         my $load = eval "require '$_'; 1";
+
         if (!$load) {
             print "papis-fzf :: ERROR failed to load $_\n";
         } elsif ($DEBUG) {
@@ -213,6 +218,22 @@ if (-d $USERCMD) {
     }
 }
 
+my @commands = glob( "$RealBin/commands" . '/*' );
+
+foreach (@commands) {
+    my $name = $_ =~ s/.*\///r;
+
+    if (not grep {$_ eq $name} @importedcmds) {
+        # Loads module. Debug messages if successes/fails
+        my $load = eval "require '$_'; 1";
+
+        if (!$load) {
+            print "papis-fzf :: ERROR failed to load $_\n";
+        } elsif ($DEBUG) {
+            print "$_\n";
+        }
+    }
+}
 
 #====================================================
 #==  One run of a command  ==========================
@@ -393,11 +414,11 @@ if (@fzfselection) {
     # Debug output
     if ($DEBUG) {
         print  "\n====\n";
-        printf "papis-fzf :: DEBUG fzf cmd : %s\n", @fzfcmd if ($DEBUG == 2);
+        printf "papis-fzf :: DEBUG fzf cmd : %s\n", join " ", @fzfcmd if ($DEBUG == 2);
         printf "papis-fzf :: DEBUG command : %s\n", $cmd;
         printf "papis-fzf :: DEBUG query : %s\n", $query if ($query);
         print  "papis-fzf :: DEBUG query : null\n" if (!$query);
-        printf "papis-fzf :: DEBUG papis-folders : %s\n", @papisfolders if (@papisfolders);
+        printf "papis-fzf :: DEBUG papis-folders : %s\n", join " ", @papisfolders if (@papisfolders);
         print  "\n";
     }
 

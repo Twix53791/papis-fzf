@@ -14,10 +14,10 @@ terminal_options="-o font_family=Iosevka-Term-Extended -o bold_font=Iosevka-Term
 editor=nano
 
 # Options used when editing the citation-format file (optional)
-edit_cite_opts="-Y python"
+edit_default_opts=('-Y', 'python')
 
 # Enable notifications
-enable_notifications=1
+enable_notifications=0
 
 # --no-clear fzf option
 no_clear=0
@@ -81,14 +81,29 @@ show_wrap=("  ", "   ", 3)
 #   quoting them between curly brackets {author}
 # -They must be real field names of the database
 # -Each <citation format name> has to be unique
-cite_fields=('author' 'title' 'publisher' 'year')
+cite_field_colors=('author'    => '32m',
+                   'title'     => '33m',
+                   'publisher' => '36m',
+                   'year'      => '34m')
+#cite_fields=('author' 'title' 'publisher' 'year')
+#cite_fields_colors=('{author}|32' '{title}|33' '{year}|34' '{publisher}|36' '{volume}|36' '{month}|36' '{doi}|94')
+
+# The default color (optional)
+cite_default_color=0m
+cite_stylename_color=35m
+
+# Script name color (optional) 94m
+cite_script_color=31m
+
+# Citation preview color (fzf-preview) (optional)
+cite_preview_color=34m
 
 # Set the default author style (stored in author_styles.sh)
 #  used by author.sh when add en entry
 author_style=default
 
 # Set the <separator character>
-cite_separator="|"
+cite_separator=\|
 
 # Enable rich text formatting string pattern (optional)
 # This string has to be writed in the <citation format name>
@@ -96,17 +111,9 @@ richtext="--"
 
 # Colors of fields (optional)
 # Format: {fieldname}|<ansi color number> (32 for \033[32m)
-cite_fields_colors=('{author}|32' '{title}|33' '{year}|34' '{publisher}|36' '{volume}|36' '{month}|36' '{doi}|94')
 
-# The default color (optional)
-cite_default_color=35
-
-# Script name color (optional)
-cite_script_color=94
-
-# Citation preview color (fzf-preview) (optional)
-cite_preview_color=34
-
+# Cite (choose between citation formats)
+cite_fzf_keys=('edit'=>'ctrl-e')
 
 ############################
 ###### Citations menu ######
@@ -159,9 +166,6 @@ tag_keys=('accept'    => 'enter',
           'remove'    => 'alt-enter',
           'query_add' => 'ctrl-q')
 
-
-# Cite (choose between citation formats)
-cite_edit=ctrl-e
 
 # Citations view
 citations_show=enter
