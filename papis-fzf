@@ -24,7 +24,7 @@
 
 ## Sets working directories
 
-papisfzfdir=$HOME/.papis-perl
+papisfzfdir=$HOME/.papis-fzf
 
 indexdir=$HOME/.cache/papis-fzf
 DIRECTORIES+=("$indexdir")
